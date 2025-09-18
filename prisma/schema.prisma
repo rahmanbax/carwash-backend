@@ -42,6 +42,8 @@ model User {
   phone    String @unique
   role     Role   @default(CUSTOMER)
 
+  photoUrl String?
+
   // Relasi
   vehicles Vehicle[]
   bookings Booking[]
@@ -93,7 +95,12 @@ model Service {
 // }
 
 model Booking {
-  id          Int           @id @default(autoincrement())
+  id Int @id @default(autoincrement())
+
+  bookingNumber String @unique
+
+  queueNumber   Int
+
   bookingDate DateTime
   totalPrice  Float
   status      BookingStatus @default(BOOKED)
@@ -114,7 +121,8 @@ model Booking {
   // location   Location @relation(fields: [locationId], references: [id])
   // locationId Int
 
-  services Service[]
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
