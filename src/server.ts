@@ -6,12 +6,17 @@ import bookingRoutes from './routes/bookingRoutes';
 import slotRoutes from './routes/slotRoutes';
 import userRoutes from './routes/userRoutes';
 
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
+
 const app = express();
 app.use(express.json());
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Your server is fine!');
+  res.send('TelU Carwash Backend is running!');
 });
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
