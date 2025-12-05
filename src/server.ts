@@ -5,6 +5,7 @@ import vehicleRoutes from './routes/vehicleRoutes';
 import bookingRoutes from './routes/bookingRoutes'; 
 import slotRoutes from './routes/slotRoutes';
 import userRoutes from './routes/userRoutes';
+import serviceRoutes from './routes/serviceRoutes';
 
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
@@ -23,6 +24,8 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/slots', slotRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/services', serviceRoutes);
+
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 export default app;
