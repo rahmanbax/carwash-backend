@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createBooking, getMyBookings } from "../controllers/bookingController";
+import { createBooking, getMyBookings, getBookingById } from "../controllers/bookingController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -62,5 +62,30 @@ const router = Router();
  */
 router.get("/", authMiddleware, getMyBookings);
 router.post("/", authMiddleware, createBooking);
+
+/**
+ * @swagger
+ * /api/bookings/{id}:
+ *   get:
+ *     summary: Mendapatkan detail booking spesifik berdasarkan ID
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID unik dari booking.
+ *     responses:
+ *       '200':
+ *         description: Berhasil mengambil detail booking.
+ *       '401':
+ *         description: Tidak terautentikasi.
+ *       '404':
+ *         description: Booking tidak ditemukan atau bukan milik user.
+ */
+router.get('/:id', authMiddleware, getBookingById);
 
 export default router;

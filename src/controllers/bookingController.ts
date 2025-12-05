@@ -256,3 +256,78 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
       .json({ status: "error", message: "Terjadi kesalahan pada server." });
   }
 };
+
+export const getBookingById = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.userId;
+  const bookingId = parseInt(req.params.id, 10);
+
+  // 1. Validasi Input
+  if (!userId) {
+    return res
+      .status(401)
+      .json({ status: "error", message: "User tidak terautentikasi." });
+  }
+  if (isNaN(bookingId)) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "ID Booking tidak valid." });
+  }
+
+  try {
+    // 2. Cari booking spesifik di database
+    // Klausa 'where' ini memastikan kita hanya menemukan booking yang ID-nya cocok
+    // DAN dimiliki oleh user yang sedang login. Ini adalah kunci keamanannya.
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: bookingId,
+        userId: userId, // <-- Kunci Otorisasi
+      },
+      include: {
+        vehicle: true,
+        service: true,
+      },
+    });
+
+    // 3. Jika booking tidak ditemukan (atau bukan milik user ini), kirim 404
+    if (!booking) {
+      return res.status(404).json({
+        status: "error",
+        message: "Booking tidak ditemukan atau Anda tidak memiliki hak akses.",
+      });
+    }
+
+    const qrCodeDataURL = await qrcode.toDataURL(booking.bookingNumber);
+
+    const responseData = {
+      id: booking.id,
+      status: booking.status,
+      nomorBooking: booking.bookingNumber,
+      tanggalWaktu: booking.bookingDate,
+      nomorAntrian: booking.queueNumber,
+      kendaraan: {
+        platNomor: booking.vehicle.plate,
+        jenisKendaraan: booking.vehicle.type,
+        model: booking.vehicle.model,
+      },
+      layanan: {
+        namaPaket: booking.service.name,
+        deskripsi: booking.service.description,
+      },
+      totalPembayaran: booking.totalPrice,
+      qrCode: qrCodeDataURL,
+    };
+
+    // 5. Kirim respons sukses
+    res.status(200).json({
+      status: "success",
+      message: "Berhasil mengambil detail booking.",
+      data: responseData,
+    });
+
+  } catch (error) {
+    console.error("Error saat mengambil detail booking:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
