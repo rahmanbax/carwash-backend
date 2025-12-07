@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -33,6 +32,11 @@ enum VehicleType {
   MOTOR
 }
 
+enum NotificationType {
+  STATUS_UPDATE
+  REMINDER
+}
+
 model User {
   id       Int    @id @default(autoincrement())
   email    String @unique
@@ -45,8 +49,9 @@ model User {
   photoUrl String?
 
   // Relasi
-  vehicles Vehicle[]
-  bookings Booking[]
+  vehicles      Vehicle[]
+  bookings      Booking[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -99,7 +104,7 @@ model Booking {
 
   bookingNumber String @unique
 
-  queueNumber   Int
+  queueNumber Int
 
   bookingDate DateTime
   totalPrice  Float
@@ -124,10 +129,45 @@ model Booking {
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId Int
 
+  statusHistory BookingStatusHistory[]
+
+  notifications Notification[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
   // @@index([locationId])
   @@index([bookingDate])
+}
+
+model BookingStatusHistory {
+  id     Int           @id @default(autoincrement())
+  status BookingStatus // Status yang dicatat (misal: DICUCI, SELESAI)
+  notes  String? // Deskripsi opsional, misal: "Kendaraan telah diterima oleh petugas"
+
+  // Relasi: Setiap entri histori dimiliki oleh satu Booking
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int // Foreign key ke tabel Booking
+
+  // Waktu kapan status ini dicatat
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id      Int              @id @default(autoincrement())
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+  type    NotificationType
+
+  // Relasi: Setiap notifikasi dimiliki oleh satu User
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  // Relasi opsional: Notifikasi bisa terhubung ke satu Booking
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int?
+
+  createdAt DateTime @default(now())
 }

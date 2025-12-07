@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import prisma from "../lib/prisma"; // Impor instance Prisma Anda
+import prisma from "../lib/prisma";
 import * as bcrypt from "bcrypt";
 import * as jwt from "jsonwebtoken";
 

@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { createBooking, getMyBookings, getBookingById } from "../controllers/bookingController";
+import {
+  createBooking,
+  getMyBookings,
+  getBookingById,
+  getBookingTimeline,
+  updateBookingStatus,
+} from "../controllers/bookingController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -86,6 +92,33 @@ router.post("/", authMiddleware, createBooking);
  *       '404':
  *         description: Booking tidak ditemukan atau bukan milik user.
  */
-router.get('/:id', authMiddleware, getBookingById);
+router.get("/:id", authMiddleware, getBookingById);
+
+/**
+ * @swagger
+ * /api/bookings/{id}/timeline:
+ *   get:
+ *     summary: Mendapatkan riwayat status (timeline) untuk booking spesifik
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID unik dari booking.
+ *     responses:
+ *       '200':
+ *         description: Berhasil mengambil data timeline.
+ *       '401':
+ *         description: Tidak terautentikasi.
+ *       '404':
+ *         description: Booking tidak ditemukan atau bukan milik user.
+ */
+router.get("/:id/timeline", authMiddleware, getBookingTimeline);
+
+router.patch("/:id/status", authMiddleware, updateBookingStatus);
 
 export default router;
