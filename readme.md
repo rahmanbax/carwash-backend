@@ -1,4 +1,4 @@
-# Carwash Backend (Prisma v7)
+# Carwash Backend
 
 ## 1. Prasyarat
 - Node.js sesuai v22+
