@@ -76,7 +76,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, username, password, name, phone } = req.body;
+    const { email, username, password, name, phone, role } = req.body;
 
     // 1. Validasi Input Dasar
     if (!email || !username || !password) {
@@ -86,7 +86,15 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Cek Apakah User Sudah Ada
+    // 2. Validasi Role - Hanya boleh CUSTOMER
+    if (role && role !== "CUSTOMER") {
+      return res.status(403).json({
+        status: "error",
+        message: "Registrasi hanya diperbolehkan untuk role CUSTOMER. Pembuatan admin dilakukan oleh superadmin.",
+      });
+    }
+
+    // 3. Cek Apakah User Sudah Ada
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email: email }, { username: username }, { phone: phone }],
@@ -96,13 +104,13 @@ export const register = async (req: Request, res: Response) => {
     if (existingUser) {
       // Memberikan pesan error yang spesifik
       let message = "";
-        if (existingUser.email === email) {
-          message = "User dengan email tersebut sudah ada.";
-        } else if (existingUser.username === username) {
-          message = "User dengan username tersebut sudah ada.";
-        } else if (phone && existingUser.phone === phone) {
-          message = "User dengan nomor telepon tersebut sudah ada.";
-        }
+      if (existingUser.email === email) {
+        message = "User dengan email tersebut sudah ada.";
+      } else if (existingUser.username === username) {
+        message = "User dengan username tersebut sudah ada.";
+      } else if (phone && existingUser.phone === phone) {
+        message = "User dengan nomor telepon tersebut sudah ada.";
+      }
       return res.status(409).json({ status: "error", message }); // 409 Conflict
     }
 
@@ -116,6 +124,7 @@ export const register = async (req: Request, res: Response) => {
         password: hashedPassword,
         name,
         phone,
+        role: "CUSTOMER", // Force role to CUSTOMER
       },
     });
 
@@ -134,6 +143,101 @@ export const register = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error saat registrasi:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+  try {
+    // 1. Dapatkan token dari header Authorization
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1]; // Format: "Bearer TOKEN"
+
+    if (!token) {
+      return res.status(401).json({
+        status: "error",
+        message: "Token tidak disediakan.",
+      });
+    }
+
+    // 2. Verifikasi token lama
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET tidak ditemukan di .env");
+    }
+
+    jwt.verify(token, secret, async (err, decoded) => {
+      if (err) {
+        return res.status(403).json({
+          status: "error",
+          message: "Token tidak valid atau sudah kadaluwarsa.",
+        });
+      }
+
+      // 3. Ambil data user dari decoded token
+      const payload = decoded as { userId: number; username: string; role: string };
+
+      // 4. Verifikasi user masih ada di database
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          status: "error",
+          message: "User tidak ditemukan.",
+        });
+      }
+
+      // 5. Generate token baru
+      const newPayload = {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+      };
+
+      const newToken = jwt.sign(newPayload, secret, {
+        expiresIn: "1d",
+      });
+
+      // 6. Kirim token baru
+      res.status(200).json({
+        status: "success",
+        message: "Token berhasil di-refresh!",
+        data: {
+          token: newToken,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          },
+        },
+      });
+    });
+  } catch (error) {
+    console.error("Error saat refresh token:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // Karena JWT bersifat stateless, logout dilakukan di sisi client
+    // dengan menghapus token dari storage (localStorage/sessionStorage)
+    // Server hanya mengembalikan response sukses
+
+    res.status(200).json({
+      status: "success",
+      message: "Logout berhasil. Silakan hapus token dari client.",
+    });
+  } catch (error) {
+    console.error("Error saat logout:", error);
     res
       .status(500)
       .json({ status: "error", message: "Terjadi kesalahan pada server." });

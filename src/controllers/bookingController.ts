@@ -19,12 +19,12 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const { vehicleId, serviceId, bookingDate } = req.body;
+    const { vehicleId, serviceId, bookingDate, locationId } = req.body;
 
-    if (!vehicleId || !serviceId || !bookingDate) {
+    if (!vehicleId || !serviceId || !bookingDate || !locationId) {
       return res.status(400).json({
         status: "error",
-        message: "vehicleId, serviceId, dan bookingDate wajib diisi.",
+        message: "vehicleId, serviceId, bookingDate, dan locationId wajib diisi.",
       });
     }
 
@@ -125,6 +125,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
           user: { connect: { id: userId } },
           vehicle: { connect: { id: vehicleId } },
           service: { connect: { id: serviceId } },
+          location: { connect: { id: locationId } },
         },
       });
 

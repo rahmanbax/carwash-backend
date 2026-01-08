@@ -28,6 +28,63 @@ const router = Router();
  *     responses:
  *       '200':
  *         description: Berhasil mengambil riwayat booking.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil riwayat booking.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       status:
+ *                         type: string
+ *                         enum: [BOOKED, DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI, DIBATALKAN, EXPIRED]
+ *                         example: DICUCI
+ *                       nomorBooking:
+ *                         type: string
+ *                         example: "TC-0801202601"
+ *                       tanggalWaktu:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2026-01-08T10:30:00.000Z"
+ *                       nomorAntrian:
+ *                         type: integer
+ *                         example: 1
+ *                       kendaraan:
+ *                         type: object
+ *                         properties:
+ *                           platNomor:
+ *                             type: string
+ *                             example: "B 1234 ABC"
+ *                           jenisKendaraan:
+ *                             type: string
+ *                             example: MOBIL
+ *                           model:
+ *                             type: string
+ *                             example: "Toyota Avanza"
+ *                       layanan:
+ *                         type: object
+ *                         properties:
+ *                           namaPaket:
+ *                             type: string
+ *                             example: "Cuci Lengkap Interior & Eksterior Mobil"
+ *                           deskripsi:
+ *                             type: string
+ *                             example: "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil."
+ *                       totalPembayaran:
+ *                         type: number
+ *                         example: 100000
  *       '401':
  *         description: Tidak terautentikasi.
  *   post:
@@ -41,7 +98,7 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [vehicleId, serviceId, bookingDate]
+ *             required: [vehicleId, serviceId, bookingDate, locationId]
  *             properties:
  *               vehicleId:
  *                 type: integer
@@ -51,6 +108,10 @@ const router = Router();
  *                 type: integer
  *                 description: ID layanan yang dipilih.
  *                 example: 2
+ *               locationId:
+ *                 type: integer
+ *                 description: ID lokasi cuci mobil yang dipilih.
+ *                 example: 1
  *               bookingDate:
  *                 type: string
  *                 format: date-time
@@ -59,8 +120,62 @@ const router = Router();
  *     responses:
  *       '201':
  *         description: Booking berhasil dibuat, mengembalikan detail lengkap dan QR code.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Booking berhasil dibuat!
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     nomorBooking:
+ *                       type: string
+ *                       example: "TC-0801202601"
+ *                     tanggalWaktu:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-01-08T10:30:00.000Z"
+ *                     nomorAntrian:
+ *                       type: integer
+ *                       example: 1
+ *                     kendaraan:
+ *                       type: object
+ *                       properties:
+ *                         platNomor:
+ *                           type: string
+ *                           example: "B 1234 ABC"
+ *                         jenisKendaraan:
+ *                           type: string
+ *                           example: MOBIL
+ *                         model:
+ *                           type: string
+ *                           example: "Toyota Avanza"
+ *                     layanan:
+ *                       type: object
+ *                       properties:
+ *                         namaPaket:
+ *                           type: string
+ *                           example: "Cuci Lengkap Interior & Eksterior Mobil"
+ *                         deskripsi:
+ *                           type: string
+ *                           example: "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil."
+ *                     totalPembayaran:
+ *                       type: number
+ *                       example: 100000
+ *                     qrCode:
+ *                       type: string
+ *                       description: QR code dalam format Data URL (base64).
+ *                       example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
  *       '400':
  *         description: Input tidak valid.
+ *       '401':
+ *         description: Tidak terautentikasi.
  *       '403':
  *         description: Kendaraan bukan milik user.
  *       '409':
@@ -87,6 +202,62 @@ router.post("/", authMiddleware, createBooking);
  *     responses:
  *       '200':
  *         description: Berhasil mengambil detail booking.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil detail booking.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     status:
+ *                       type: string
+ *                       example: DICUCI
+ *                     nomorBooking:
+ *                       type: string
+ *                       example: "TC-0801202601"
+ *                     tanggalWaktu:
+ *                       type: string
+ *                       format: date-time
+ *                     nomorAntrian:
+ *                       type: integer
+ *                       example: 1
+ *                     kendaraan:
+ *                       type: object
+ *                       properties:
+ *                         platNomor:
+ *                           type: string
+ *                           example: "B 1234 ABC"
+ *                         jenisKendaraan:
+ *                           type: string
+ *                           example: MOBIL
+ *                         model:
+ *                           type: string
+ *                           example: "Toyota Avanza"
+ *                     layanan:
+ *                       type: object
+ *                       properties:
+ *                         namaPaket:
+ *                           type: string
+ *                           example: "Cuci Lengkap Interior & Eksterior Mobil"
+ *                         deskripsi:
+ *                           type: string
+ *                           example: "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil."
+ *                     totalPembayaran:
+ *                       type: number
+ *                       example: 100000
+ *                     qrCode:
+ *                       type: string
+ *                       example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
  *       '401':
  *         description: Tidak terautentikasi.
  *       '404':
@@ -112,6 +283,47 @@ router.get("/:id", authMiddleware, getBookingById);
  *     responses:
  *       '200':
  *         description: Berhasil mengambil data timeline.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil riwayat status booking.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     nomorBooking:
+ *                       type: string
+ *                       example: "TC-0801202601"
+ *                     namaKendaraan:
+ *                       type: string
+ *                       example: "Toyota Avanza"
+ *                     platNomor:
+ *                       type: string
+ *                       example: "B 1234 ABC"
+ *                     layanan:
+ *                       type: string
+ *                       example: "Cuci Lengkap Interior & Eksterior Mobil"
+ *                     timeline:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             enum: [BOOKED, DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI]
+ *                             example: BOOKED
+ *                           waktu:
+ *                             type: string
+ *                             format: date-time
+ *                           catatan:
+ *                             type: string
+ *                             example: "Pesanan berhasil dibuat"
  *       '401':
  *         description: Tidak terautentikasi.
  *       '404':

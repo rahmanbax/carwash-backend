@@ -8,6 +8,7 @@ import slotRoutes from "./routes/slotRoutes";
 import userRoutes from "./routes/userRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import locationRoutes from './routes/locationRoutes';
 
 import cron from "node-cron";
 
@@ -31,6 +32,7 @@ app.use("/api/slots", slotRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use('/api/locations', locationRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 

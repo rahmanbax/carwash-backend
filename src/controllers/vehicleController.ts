@@ -100,6 +100,54 @@ export const getMyVehicles = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getVehicleById = async (req: AuthRequest, res: Response) => {
+  try {
+    const vehicleId = parseInt(req.params.id, 10);
+    const userId = req.user?.userId;
+
+    // Validasi input
+    if (isNaN(vehicleId)) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "ID Kendaraan tidak valid." });
+    }
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ status: "error", message: "User tidak terautentikasi." });
+    }
+
+    // Cari kendaraan berdasarkan ID dan pastikan milik user yang sedang login
+    const vehicle = await prisma.vehicle.findFirst({
+      where: {
+        id: vehicleId,
+        ownerId: userId, // Kunci otorisasi: hanya tampilkan jika milik user
+      },
+    });
+
+    // Jika kendaraan tidak ditemukan atau bukan milik user
+    if (!vehicle) {
+      return res.status(404).json({
+        status: "error",
+        message: "Kendaraan tidak ditemukan atau Anda tidak memiliki hak akses.",
+      });
+    }
+
+    // Kirim respons sukses dengan data kendaraan
+    res.status(200).json({
+      status: "success",
+      message: "Berhasil mengambil data kendaraan.",
+      data: vehicle,
+    });
+  } catch (error) {
+    console.error("Error saat mengambil data kendaraan:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
+
 export const updateVehicle = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Ambil ID dari URL parameter dan data dari body

@@ -55,7 +55,7 @@ const router = Router();
  *                         example: false
  *                       type:
  *                         type: string
- *                         enum: [STATUS_UPDATE, REMINDER, PROMO]
+ *                         enum: [STATUS_UPDATE, REMINDER]
  *                         example: STATUS_UPDATE
  *                       bookingId:
  *                         type: integer

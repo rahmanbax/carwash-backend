@@ -75,10 +75,11 @@ model Vehicle {
 }
 
 model Service {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
   description String?
   price       Float
+  vehicleType VehicleType?
 
   bookings Booking[]
 
@@ -86,18 +87,23 @@ model Service {
   updatedAt DateTime @updatedAt
 }
 
-// model Location {
-//   id      Int     @id @default(autoincrement())
-//   name    String
-//   address String
-//   phone   String?
+model Location {
+  id      Int     @id @default(autoincrement())
+  name    String
+  address String
+  phone   String?
 
-//   // Relasi
-//   bookings Booking[]
+  latitude  Float
+  longitude Float
 
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }
+  photoUrl String?
+
+  // Relasi
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model Booking {
   id Int @id @default(autoincrement())
@@ -123,8 +129,8 @@ model Booking {
   vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
   vehicleId Int
 
-  // location   Location @relation(fields: [locationId], references: [id])
-  // locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+  locationId Int
 
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId Int
@@ -137,7 +143,7 @@ model Booking {
   updatedAt DateTime @updatedAt
 
   @@index([status])
-  // @@index([locationId])
+  @@index([locationId])
   @@index([bookingDate])
 }
 
