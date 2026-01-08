@@ -217,21 +217,6 @@ npm run dev
 - **PaymentStatus**: `UNPAID`, `PAID_CASH`
 - **NotificationType**: `STATUS_UPDATE`, `REMINDER`
 
-### Diagram ER:
-
-```
-User (1) ──< (N) Vehicle
-User (1) ──< (N) Booking
-User (1) ──< (N) Notification
-
-Vehicle (1) ──< (N) Booking
-Service (1) ──< (N) Booking
-Location (1) ──< (N) Booking
-
-Booking (1) ──< (N) BookingStatusHistory
-Booking (1) ──< (N) Notification
-```
-
 ---
 
 ## 📚 API Documentation
@@ -297,38 +282,6 @@ http://localhost:3000/api-docs
 ---
 
 ## 🧪 Testing
-
-### Test Slot Availability
-
-```bash
-# Test untuk hari ini, location Central Jakarta (ID: 1)
-curl "http://localhost:8000/api/slots/availability?date=2026-01-08&locationId=1"
-```
-
-### Test Login
-
-```bash
-curl -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "budisantoso",
-    "password": "customer123"
-  }'
-```
-
-### Test Create Booking
-
-```bash
-curl -X POST http://localhost:8000/api/bookings \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token>" \
-  -d '{
-    "vehicleId": 1,
-    "serviceId": 1,
-    "locationId": 1,
-    "bookingDate": "2026-01-09T10:00:00.000Z"
-  }'
-```
 
 ### Prisma Studio
 
@@ -424,50 +377,3 @@ Setelah seed, gunakan kredensial berikut untuk testing:
 
 ---
 
-## 📂 Struktur Folder
-
-```
-carwash-backend/
-├── prisma/
-│   ├── migrations/          # Database migrations
-│   ├── schema.prisma        # Database schema
-│   └── seed.ts             # Seed data
-├── src/
-│   ├── controllers/        # Business logic
-│   ├── middleware/         # Express middleware
-│   ├── routes/            # API routes
-│   ├── lib/               # Utilities (prisma client)
-│   ├── index.ts           # Entry point
-│   └── server.ts          # Express app setup
-├── uploads/               # Uploaded files
-├── .env                   # Environment variables
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
-
-## 🤝 Contributing
-
-1. Fork repository
-2. Buat branch baru (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push ke branch (`git push origin feature/AmazingFeature`)
-5. Buat Pull Request
-
----
-
-## 📄 License
-
-[MIT License](LICENSE)
-
----
-
-## 📞 Support
-
-Jika ada pertanyaan atau issue, silakan buat issue di repository atau hubungi tim development.
-
----
-
-**Happy Coding! 🚀**
