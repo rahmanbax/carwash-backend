@@ -2,18 +2,6 @@
 
 Backend API untuk aplikasi manajemen cuci mobil dengan fitur booking, slot management, dan tracking status kendaraan.
 
-## 📋 Daftar Isi
-
-- [Fitur Utama](#-fitur-utama)
-- [Tech Stack](#-tech-stack)
-- [Prasyarat](#-prasyarat)
-- [Instalasi untuk Pengguna Baru](#-instalasi-untuk-pengguna-baru)
-- [Panduan Update Project](#-panduan-update-project)
-- [Struktur Database](#-struktur-database)
-- [API Documentation](#-api-documentation)
-- [Testing](#-testing)
-- [Troubleshooting](#-troubleshooting)
-
 ---
 
 ## ✨ Fitur Utama

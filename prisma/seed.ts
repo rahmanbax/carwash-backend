@@ -89,7 +89,7 @@ async function main() {
 
   console.log("Membuat Users...");
   const saltRounds = 10;
-  const superAdminPassword = await bcrypt.hash("supersecret123", saltRounds);
+  const allAdminPassword = await bcrypt.hash("supersecret123", saltRounds);
   const customerPassword = await bcrypt.hash("customer123", saltRounds);
 
   const superAdmin = await prisma.user.create({
@@ -97,9 +97,20 @@ async function main() {
       email: "superadmin@carwash.com",
       username: "superadmin",
       name: "Super Admin",
-      password: superAdminPassword,
+      password: allAdminPassword,
       role: "SUPERADMIN",
       phone: "081234567890",
+    },
+  });
+
+  const admin = await prisma.user.create({
+    data: {
+      email: "admin@carwash.com",
+      username: "admin",
+      name: "Admin",
+      password: allAdminPassword,
+      role: "ADMIN",
+      phone: "081234567891",
     },
   });
 
