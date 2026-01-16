@@ -416,8 +416,55 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
   try {
     const bookingId = parseInt(req.params.id, 10);
     const { status, notes } = req.body;
+    const userId = req.user?.userId;
+    const userRole = req.user?.role;
 
-    // Validasi input
+    if (!userId || !userRole) {
+      return res.status(401).json({
+        status: "error",
+        message: "User tidak terautentikasi.",
+      });
+    }
+
+    // 1. Ambil data booking untuk cek lokasinya
+    const bookingToUpdate = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { locationId: true },
+    });
+
+    if (!bookingToUpdate) {
+      return res.status(404).json({
+        status: "error",
+        message: "Booking tidak ditemukan.",
+      });
+    }
+
+    // 2. Cek Otorisasi
+    // Superadmin boleh update semua
+    if (userRole !== "SUPERADMIN") {
+      // Jika bukan Superadmin, harus Admin
+      if (userRole !== "ADMIN") {
+        return res.status(403).json({
+          status: "error",
+          message: "Akses ditolak. Anda tidak memiliki izin untuk mengubah status booking.",
+        });
+      }
+
+      // Jika Admin, cek apakah lokasinya sesuai
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { locationId: true },
+      });
+
+      if (!user || user.locationId !== bookingToUpdate.locationId) {
+        return res.status(403).json({
+          status: "error",
+          message: "Akses ditolak. Anda hanya dapat mengubah status booking di lokasi Anda bertugas.",
+        });
+      }
+    }
+
+    // Validasi input status
     if (!status || !Object.values(BookingStatus).includes(status)) {
       return res
         .status(400)

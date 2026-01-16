@@ -9,14 +9,17 @@ import userRoutes from "./routes/userRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import locationRoutes from './routes/locationRoutes';
+import statisticsRoutes from './routes/statisticsRoutes';
 
 import cron from "node-cron";
+import cors from 'cors';
 
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("TelU Carwash Backend is running!");
@@ -33,6 +36,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/statistics/', statisticsRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 

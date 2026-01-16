@@ -111,6 +111,7 @@ async function main() {
       password: allAdminPassword,
       role: "ADMIN",
       phone: "081234567891",
+      locationId: locationCentral.id,
     },
   });
 

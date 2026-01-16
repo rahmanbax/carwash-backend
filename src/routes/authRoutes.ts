@@ -291,7 +291,7 @@ router.post("/refresh", refreshToken);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: Logout berhasil. Silakan hapus token dari client.
+ *                   example: Logout berhasil.
  */
 router.post("/logout", logout);
 

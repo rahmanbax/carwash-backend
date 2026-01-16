@@ -51,7 +51,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(payload, secret, {
-      expiresIn: "1d",
+      expiresIn: "10m",
     });
 
     res.status(200).json({
@@ -65,6 +65,7 @@ export const login = async (req: Request, res: Response) => {
           email: user.email,
           name: user.name,
           role: user.role,
+          photoUrl: user.photoUrl,
         },
       },
     });
@@ -162,24 +163,35 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Verifikasi token lama
+    // 2. Verifikasi token (dengan mengabaikan waktu kadaluwarsa sementara untuk mengecek Grace Period)
     const secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error("JWT_SECRET tidak ditemukan di .env");
     }
 
-    jwt.verify(token, secret, async (err, decoded) => {
+    jwt.verify(token, secret, { ignoreExpiration: true }, async (err, decoded) => {
       if (err) {
         return res.status(403).json({
           status: "error",
-          message: "Token tidak valid atau sudah kadaluwarsa.",
+          message: "Token tidak valid.",
         });
       }
 
       // 3. Ambil data user dari decoded token
-      const payload = decoded as { userId: number; username: string; role: string };
+      const payload = decoded as { userId: number; username: string; role: string; exp: number };
 
-      // 4. Verifikasi user masih ada di database
+      // 4. Implementasi Grace Period 60 second
+      const GRACE_PERIOD_SECONDS = 60;
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      if (payload.exp + GRACE_PERIOD_SECONDS < currentTime) {
+        return res.status(403).json({
+          status: "error",
+          message: "Token sudah melewati masa tenggang dan tidak dapat di-refresh. Silakan login kembali.",
+        });
+      }
+
+      // 5. Verifikasi user masih ada di database
       const user = await prisma.user.findUnique({
         where: { id: payload.userId },
       });
@@ -191,7 +203,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         });
       }
 
-      // 5. Generate token baru
+      // 6. Generate token baru
       const newPayload = {
         userId: user.id,
         username: user.username,
@@ -199,10 +211,10 @@ export const refreshToken = async (req: Request, res: Response) => {
       };
 
       const newToken = jwt.sign(newPayload, secret, {
-        expiresIn: "1d",
+        expiresIn: "30d",
       });
 
-      // 6. Kirim token baru
+      // 7. Kirim token baru
       res.status(200).json({
         status: "success",
         message: "Token berhasil di-refresh!",
@@ -214,6 +226,7 @@ export const refreshToken = async (req: Request, res: Response) => {
             email: user.email,
             name: user.name,
             role: user.role,
+            photoUrl: user.photoUrl,
           },
         },
       });
@@ -234,7 +247,7 @@ export const logout = async (req: Request, res: Response) => {
 
     res.status(200).json({
       status: "success",
-      message: "Logout berhasil. Silakan hapus token dari client.",
+      message: "Logout berhasil.",
     });
   } catch (error) {
     console.error("Error saat logout:", error);

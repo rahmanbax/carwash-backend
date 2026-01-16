@@ -331,6 +331,49 @@ router.get("/:id", authMiddleware, getBookingById);
  */
 router.get("/:id/timeline", authMiddleware, getBookingTimeline);
 
+/**
+ * @swagger
+ * /api/bookings/{id}/status:
+ *   patch:
+ *     summary: Memperbarui status booking (Hanya Admin Lokasi atau Superadmin)
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID unik dari booking.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI, DIBATALKAN]
+ *                 example: DICUCI
+ *               notes:
+ *                 type: string
+ *                 description: Catatan tambahan untuk riwayat status.
+ *                 example: "Kendaraan sedang mulai disabun."
+ *     responses:
+ *       '200':
+ *         description: Status booking berhasil diperbarui.
+ *       '400':
+ *         description: Input tidak valid.
+ *       '401':
+ *         description: Tidak terautentikasi.
+ *       '403':
+ *         description: Akses ditolak. Bukan Admin dari lokasi ini atau bukan Superadmin.
+ *       '404':
+ *         description: Booking tidak ditemukan.
+ */
 router.patch("/:id/status", authMiddleware, updateBookingStatus);
 
 export default router;
