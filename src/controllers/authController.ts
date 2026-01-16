@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import * as bcrypt from "bcrypt";
 import * as jwt from "jsonwebtoken";
+import { AuthRequest } from "../middleware/authMiddleware";
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -39,6 +40,15 @@ export const login = async (req: Request, res: Response) => {
         .json({ status: "error", message: "Username atau password salah." });
     }
 
+    // 4. Update status Online dan waktu login terakhir
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLogin: new Date(),
+        isActive: true // Set menjadi online saat login berhasil
+      },
+    });
+
     const payload = {
       userId: user.id,
       username: user.username,
@@ -51,7 +61,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(payload, secret, {
-      expiresIn: "10m",
+      expiresIn: "1d",
     });
 
     res.status(200).json({
@@ -211,7 +221,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       };
 
       const newToken = jwt.sign(newPayload, secret, {
-        expiresIn: "30d",
+        expiresIn: "1d",
       });
 
       // 7. Kirim token baru
@@ -239,11 +249,16 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: AuthRequest, res: Response) => {
   try {
-    // Karena JWT bersifat stateless, logout dilakukan di sisi client
-    // dengan menghapus token dari storage (localStorage/sessionStorage)
-    // Server hanya mengembalikan response sukses
+    const userId = req.user?.userId;
+
+    if (userId) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+      });
+    }
 
     res.status(200).json({
       status: "success",
@@ -254,5 +269,25 @@ export const logout = async (req: Request, res: Response) => {
     res
       .status(500)
       .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
+
+export const heartbeat = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (userId) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          lastLogin: new Date(),
+          isActive: true
+        },
+      });
+    }
+
+    res.status(200).json({ status: "success", message: "Stay alive." });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Server error." });
   }
 };

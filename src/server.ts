@@ -10,6 +10,7 @@ import serviceRoutes from "./routes/serviceRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import locationRoutes from './routes/locationRoutes';
 import statisticsRoutes from './routes/statisticsRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 import cron from "node-cron";
 import cors from 'cors';
@@ -37,6 +38,7 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/statistics/', statisticsRoutes);
+app.use('/api/admins', adminRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
@@ -96,6 +98,32 @@ cron.schedule("*/15 * * * *", async () => {
     }
   } catch (error) {
     console.error("Error saat menjalankan cron job pengingat:", error);
+  }
+});
+
+// Cron untuk otomatis mengubah status Offline (setiap 5 menit)
+cron.schedule("*/5 * * * *", async () => {
+  console.log("Menjalankan cron job untuk Auto-Offline...");
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60000);
+
+    const result = await prisma.user.updateMany({
+      where: {
+        isActive: true,
+        lastLogin: {
+          lt: fiveMinutesAgo,
+        },
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
+    if (result.count > 0) {
+      console.log(`${result.count} pengguna diubah ke Offline.`);
+    }
+  } catch (error) {
+    console.error("Error saat menjalankan cron job Auto-Offline:", error);
   }
 });
 

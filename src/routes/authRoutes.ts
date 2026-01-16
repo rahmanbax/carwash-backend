@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { login, register, refreshToken, logout } from "../controllers/authController";
+import { login, register, refreshToken, logout, heartbeat } from "../controllers/authController";
+import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
 
@@ -7,7 +8,7 @@ const router = Router();
  * @swagger
  * tags:
  *   name: Auth
- *   description: Endpoint untuk otentikasi (registrasi dan login)
+ *   description: Endpoint untuk otentikasi
  */
 
 /**
@@ -293,6 +294,20 @@ router.post("/refresh", refreshToken);
  *                   type: string
  *                   example: Logout berhasil.
  */
-router.post("/logout", logout);
+router.post("/logout", authMiddleware, logout);
+
+/**
+ * @swagger
+ * /api/auth/heartbeat:
+ *   post:
+ *     summary: Update status online (Heartbeat)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Status updated.
+ */
+router.post("/heartbeat", authMiddleware, heartbeat);
 
 export default router;
