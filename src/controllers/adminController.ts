@@ -181,7 +181,7 @@ export const updateAdmin = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ status: "error", message: "ID Admin tidak valid." });
         }
 
-        const { name, username, email, password, phone, locationId, isActive } = req.body;
+        const { name, username, email, password, phone, locationId } = req.body;
 
         // Data yang akan di-update
         const updateData: any = {
@@ -190,7 +190,6 @@ export const updateAdmin = async (req: AuthRequest, res: Response) => {
             email,
             phone,
             locationId,
-            isActive,
         };
 
         // Jika ada password baru, hash dulu
@@ -215,8 +214,8 @@ export const updateAdmin = async (req: AuthRequest, res: Response) => {
                 name: updatedAdmin.name,
                 username: updatedAdmin.username,
                 email: updatedAdmin.email,
+                phone: updatedAdmin.phone,
                 location: updatedAdmin.location?.name,
-                isActive: updatedAdmin.isActive,
             },
         });
     } catch (error) {
@@ -267,6 +266,71 @@ export const deleteAdmin = async (req: AuthRequest, res: Response) => {
         });
     } catch (error) {
         console.error("Error saat hapus admin:", error);
+        res.status(500).json({ status: "error", message: "Terjadi kesalahan pada server." });
+    }
+};
+
+/**
+ * Mendapatkan detail Admin by ID
+ * Hanya untuk SUPERADMIN
+ */
+export const getAdminById = async (req: AuthRequest, res: Response) => {
+    try {
+        const userRole = req.user?.role;
+        const adminId = parseInt(req.params.id, 10);
+
+        if (userRole !== "SUPERADMIN") {
+            return res.status(403).json({
+                status: "error",
+                message: "Akses ditolak.",
+            });
+        }
+
+        if (isNaN(adminId)) {
+            return res.status(400).json({ status: "error", message: "ID Admin tidak valid." });
+        }
+
+        const admin = await prisma.user.findUnique({
+            where: { id: adminId },
+            include: {
+                location: {
+                    select: {
+                        id: true,
+                        name: true,
+                        address: true,
+                    },
+                },
+            },
+        });
+
+        if (!admin || admin.role !== "ADMIN") {
+            return res.status(404).json({
+                status: "error",
+                message: "Admin tidak ditemukan.",
+            });
+        }
+
+        const formattedAdmin = {
+            id: admin.id,
+            name: admin.name,
+            username: admin.username,
+            phone: admin.phone,
+            email: admin.email,
+            location: admin.location ? admin.location.name : "Tidak ada lokasi",
+            locationId: admin.locationId,
+            isActive: admin.isActive,
+            lastLogin: admin.lastLogin,
+            createdAt: admin.createdAt,
+            updatedAt: admin.updatedAt,
+        };
+
+        res.status(200).json({
+            status: "success",
+            message: "Berhasil mengambil data admin.",
+            data: formattedAdmin,
+        });
+    } catch (error) {
+        console.error("Error saat mengambil detail admin:", error);
         res.status(500).json({ status: "error", message: "Terjadi kesalahan pada server." });
     }
 };

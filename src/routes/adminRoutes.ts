@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
     getAllAdmins,
+    getAdminById,
     createAdmin,
     updateAdmin,
     deleteAdmin,
@@ -12,7 +13,7 @@ const router = Router();
 /**
  * @swagger
  * tags:
- *   name: Management Admin
+ *   name: Admin
  *   description: Endpoint untuk manajemen Admin oleh Superadmin
  */
 
@@ -21,7 +22,7 @@ const router = Router();
  * /api/admins:
  *   get:
  *     summary: Mendapatkan daftar semua Admin (Hanya SUPERADMIN)
- *     tags: [Management Admin]
+ *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -88,7 +89,7 @@ const router = Router();
  *                             example: "2026-01-16T21:12:24.000Z"
  *   post:
  *     summary: Membuat Admin baru (Hanya SUPERADMIN)
- *     tags: [Management Admin]
+ *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -158,15 +159,81 @@ const router = Router();
  *       '409':
  *         description: Username/Email/Phone sudah terdaftar.
  */
-router.get("/", authMiddleware, getAllAdmins);
-router.post("/", authMiddleware, createAdmin);
-
+/**
+ * @swagger
+ * /api/admins/{id}:
+ *   get:
+ *     summary: Mendapatkan detail Admin berdasarkan ID (Hanya SUPERADMIN)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 2
+ *     responses:
+ *       '200':
+ *         description: Berhasil mengambil detail admin.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil mengambil data admin.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 2
+ *                     name:
+ *                       type: string
+ *                       example: "Admin Pusat"
+ *                     username:
+ *                       type: string
+ *                       example: "admincentral"
+ *                     phone:
+ *                       type: string
+ *                       example: "081234567891"
+ *                     email:
+ *                       type: string
+ *                       example: "admin@carwash.com"
+ *                     location:
+ *                       type: string
+ *                       example: "Cuci Mobil Central Jakarta"
+ *                     locationId:
+ *                       type: integer
+ *                       example: 1
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
+ *                     lastLogin:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-01-16T21:12:24.000Z"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *       '404':
+ *         description: Admin tidak ditemukan.
+ */
 /**
  * @swagger
  * /api/admins/{id}:
  *   put:
  *     summary: Memperbarui data Admin (Hanya SUPERADMIN)
- *     tags: [Management Admin]
+ *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -200,9 +267,6 @@ router.post("/", authMiddleware, createAdmin);
  *               locationId:
  *                 type: integer
  *                 example: 3
- *               isActive:
- *                 type: boolean
- *                 example: false
  *     responses:
  *       '200':
  *         description: Admin berhasil diperbarui.
@@ -232,15 +296,15 @@ router.post("/", authMiddleware, createAdmin);
  *                     email:
  *                       type: string
  *                       example: "admin_edit@carwash.com"
+ *                     phone:
+ *                       type: string
+ *                       example: "081234567899"
  *                     location:
  *                       type: string
  *                       example: "Cuci Mobil Central Jakarta"
- *                     isActive:
- *                       type: boolean
- *                       example: false
  *   delete:
  *     summary: Menghapus data Admin (Hanya SUPERADMIN)
- *     tags: [Management Admin]
+ *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -265,6 +329,9 @@ router.post("/", authMiddleware, createAdmin);
  *                   type: string
  *                   example: Admin berhasil dihapus.
  */
+router.get("/", authMiddleware, getAllAdmins);
+router.get("/:id", authMiddleware, getAdminById);
+router.post("/", authMiddleware, createAdmin);
 router.put("/:id", authMiddleware, updateAdmin);
 router.delete("/:id", authMiddleware, deleteAdmin);
 

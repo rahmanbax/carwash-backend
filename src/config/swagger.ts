@@ -10,9 +10,10 @@ const options: swaggerJsdoc.Options = {
     },
     tags: [
       { name: 'Auth', description: 'Endpoint untuk otentikasi' },
-      { name: 'Management Admin', description: 'Endpoint untuk manajemen Admin oleh Superadmin' },
-      { name: 'Locations', description: 'Endpoint untuk manajemen lokasi cuci mobil' },
       { name: 'Statistics', description: 'Endpoint untuk statistik dashboard superadmin' },
+      { name: 'Admin', description: 'Endpoint untuk manajemen Admin oleh Superadmin' },
+      { name: 'Transactions', description: 'Endpoint untuk manajemen transaksi (Booking)' },
+      { name: 'Locations', description: 'Endpoint untuk manajemen lokasi cuci mobil' },
       { name: 'Vehicles', description: 'Endpoint untuk manajemen kendaraan' },
       { name: 'Bookings', description: 'Endpoint untuk manajemen booking' },
       { name: 'Users', description: 'Endpoint untuk manajemen profil user' },

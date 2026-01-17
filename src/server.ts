@@ -11,6 +11,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import locationRoutes from './routes/locationRoutes';
 import statisticsRoutes from './routes/statisticsRoutes';
 import adminRoutes from './routes/adminRoutes';
+import transactionRoutes from './routes/transactionRoutes';
 
 import cron from "node-cron";
 import cors from 'cors';
@@ -39,6 +40,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/statistics/', statisticsRoutes);
 app.use('/api/admins', adminRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
@@ -103,7 +105,7 @@ cron.schedule("*/15 * * * *", async () => {
 
 // Cron untuk otomatis mengubah status Offline (setiap 5 menit)
 cron.schedule("*/5 * * * *", async () => {
-  console.log("Menjalankan cron job untuk Auto-Offline...");
+  console.log("Menjalankan cron job untuk pengecekan online user...");
   try {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60000);
 
@@ -123,7 +125,7 @@ cron.schedule("*/5 * * * *", async () => {
       console.log(`${result.count} pengguna diubah ke Offline.`);
     }
   } catch (error) {
-    console.error("Error saat menjalankan cron job Auto-Offline:", error);
+    console.error("Error saat menjalankan cron job pengecekan online user:", error);
   }
 });
 
