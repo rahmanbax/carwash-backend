@@ -43,5 +43,10 @@
     "prisma": "^7.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "hono": "4.11.4",
+    "@hono/node-server": "1.19.9"
   }
 }
