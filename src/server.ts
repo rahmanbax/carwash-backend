@@ -21,13 +21,36 @@ import swaggerSpec from "./config/swagger";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+const corsOptions = {
+  origin: [
+    'http://localhost:3000', // Development
+    // 'https://your-production-domain.com', // Production
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 app.get("/", (req: Request, res: Response) => {
   res.send("TelU Carwash Backend is running!");
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (req, res) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const specString = JSON.stringify(swaggerSpec).replace(/DYNAMIC_CURRENT_DATE/g, today);
+  res.json(JSON.parse(specString));
+});
+
+app.use("/api-docs", swaggerUi.serve, (req: any, res: any, next: any) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+  const specString = JSON.stringify(swaggerSpec).replace(/DYNAMIC_CURRENT_DATE/g, today);
+  const dynamicSpec = JSON.parse(specString);
+  swaggerUi.setup(dynamicSpec)(req, res, next);
+});
 
 // mobile app routes
 app.use("/api/auth", authRoutes);
@@ -64,6 +87,7 @@ cron.schedule("*/15 * * * *", async () => {
           lt: reminderTimeEnd,
         },
         status: "BOOKED", // Hanya untuk yang masih status BOOKED
+        userId: { not: null }, // Tambahkan ini: Hanya untuk user yang terdaftar
       },
     });
 
@@ -89,7 +113,7 @@ cron.schedule("*/15 * * * *", async () => {
             title: "Pengingat Setor Kendaraan",
             message: `Jangan lupa untuk menyetorkan kendaraan anda sebelum pukul ${bookingTime}.`,
             type: "REMINDER",
-            userId: booking.userId,
+            userId: booking.userId!,
             bookingId: booking.id,
           },
         });

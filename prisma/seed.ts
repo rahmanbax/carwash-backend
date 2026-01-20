@@ -55,36 +55,36 @@ async function main() {
   console.log("Membuat Locations...");
   const locationCentral = await prisma.location.create({
     data: {
-      name: "Cuci Mobil Central Jakarta",
-      address: "Jl. Thamrin No. 45, Jakarta Pusat",
-      phone: "021-12345678",
-      latitude: -6.1944,
-      longitude: 106.8229,
-      photoUrl: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=800",
+      name: "TelU Carwash Bandung",
+      address: "Jl. Terusan Buah Batu No.1",
+      phone: "-",
+      latitude: -6.9696,
+      longitude: 107.6290,
+      photoUrl: "https://images.unsplash.com/photo-1605164599901-f8a1464a2c87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
   });
 
-  const locationSouth = await prisma.location.create({
-    data: {
-      name: "Cuci Mobil Pondok Indah",
-      address: "Jl. Metro Pondok Indah No. 88, Jakarta Selatan",
-      phone: "021-87654321",
-      latitude: -6.2615,
-      longitude: 106.7837,
-      photoUrl: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800",
-    },
-  });
+  // const locationSouth = await prisma.location.create({
+  //   data: {
+  //     name: "Cuci Mobil Pondok Indah",
+  //     address: "Jl. Metro Pondok Indah No. 88, Jakarta Selatan",
+  //     phone: "021-87654321",
+  //     latitude: -6.2615,
+  //     longitude: 106.7837,
+  //     photoUrl: "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=800",
+  //   },
+  // });
 
-  const locationWest = await prisma.location.create({
-    data: {
-      name: "Cuci Mobil Kebon Jeruk",
-      address: "Jl. Panjang No. 123, Jakarta Barat",
-      phone: "021-55556666",
-      latitude: -6.1867,
-      longitude: 106.7674,
-      photoUrl: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=800",
-    },
-  });
+  // const locationWest = await prisma.location.create({
+  //   data: {
+  //     name: "Cuci Mobil Kebon Jeruk",
+  //     address: "Jl. Panjang No. 123, Jakarta Barat",
+  //     phone: "021-55556666",
+  //     latitude: -6.1867,
+  //     longitude: 106.7674,
+  //     photoUrl: "https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=800",
+  //   },
+  // });
   console.log("Locations telah dibuat.");
 
   console.log("Membuat Users...");
@@ -165,7 +165,7 @@ async function main() {
   const booking1Date = createBookingDate(-1, 8, 0);
   const booking1 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking1Date).toISOString().slice(0, 10).replace(/-/g, '')}-01`,
+      bookingNumber: "TNX001",
       queueNumber: 1,
       bookingDate: booking1Date,
       totalPrice: cuciCepatMobil.price,
@@ -183,7 +183,7 @@ async function main() {
   const booking2Date = createBookingDate(-1, 10, 30);
   const booking2 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking2Date).toISOString().slice(0, 10).replace(/-/g, '')}-02`,
+      bookingNumber: "TNX002",
       queueNumber: 2,
       bookingDate: booking2Date,
       totalPrice: cuciLengkapMobil.price,
@@ -192,7 +192,7 @@ async function main() {
       userId: budi.id,
       vehicleId: vario.id,
       serviceId: cuciLengkapMobil.id,
-      locationId: locationSouth.id,
+      locationId: locationCentral.id,
     },
   });
   bookings.push(booking2);
@@ -201,7 +201,7 @@ async function main() {
   const booking3Date = createBookingDate(-1, 14, 0);
   const booking3 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking3Date).toISOString().slice(0, 10).replace(/-/g, '')}-03`,
+      bookingNumber: "TNX003",
       queueNumber: 1,
       bookingDate: booking3Date,
       totalPrice: cuciMotor.price,
@@ -210,7 +210,7 @@ async function main() {
       userId: budi.id,
       vehicleId: vario.id,
       serviceId: cuciMotor.id,
-      locationId: locationWest.id,
+      locationId: locationCentral.id,
     },
   });
   bookings.push(booking3);
@@ -220,7 +220,7 @@ async function main() {
   const booking4Date = createBookingDate(0, 8, 30);
   const booking4 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking4Date).toISOString().slice(0, 10).replace(/-/g, '')}-04`,
+      bookingNumber: "TNX004",
       queueNumber: 1,
       bookingDate: booking4Date,
       totalPrice: cuciCepatMobil.price,
@@ -238,7 +238,7 @@ async function main() {
   const booking5Date = createBookingDate(0, 11, 0);
   const booking5 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking5Date).toISOString().slice(0, 10).replace(/-/g, '')}-05`,
+      bookingNumber: "TNX005",
       queueNumber: 2,
       bookingDate: booking5Date,
       totalPrice: cuciLengkapMobil.price,
@@ -256,7 +256,7 @@ async function main() {
   const booking6Date = createBookingDate(0, 13, 30);
   const booking6 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking6Date).toISOString().slice(0, 10).replace(/-/g, '')}-06`,
+      bookingNumber: "TNX006",
       queueNumber: 1,
       bookingDate: booking6Date,
       totalPrice: cuciMotor.price,
@@ -265,7 +265,7 @@ async function main() {
       userId: budi.id,
       vehicleId: vario.id,
       serviceId: cuciMotor.id,
-      locationId: locationSouth.id,
+      locationId: locationCentral.id,
     },
   });
   bookings.push(booking6);
@@ -274,7 +274,7 @@ async function main() {
   const booking7Date = createBookingDate(0, 15, 0);
   const booking7 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking7Date).toISOString().slice(0, 10).replace(/-/g, '')}-07`,
+      bookingNumber: "TNX007",
       queueNumber: 2,
       bookingDate: booking7Date,
       totalPrice: cuciCepatMobil.price,
@@ -283,7 +283,7 @@ async function main() {
       userId: budi.id,
       vehicleId: avanza.id,
       serviceId: cuciCepatMobil.id,
-      locationId: locationSouth.id,
+      locationId: locationCentral.id,
     },
   });
   bookings.push(booking7);
@@ -292,7 +292,7 @@ async function main() {
   const booking8Date = createBookingDate(0, 16, 30);
   const booking8 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking8Date).toISOString().slice(0, 10).replace(/-/g, '')}-08`,
+      bookingNumber: "TNX008",
       queueNumber: 1,
       bookingDate: booking8Date,
       totalPrice: cuciLengkapMobil.price,
@@ -301,7 +301,7 @@ async function main() {
       userId: budi.id,
       vehicleId: avanza.id,
       serviceId: cuciLengkapMobil.id,
-      locationId: locationWest.id,
+      locationId: locationCentral.id,
     },
   });
   bookings.push(booking8);
@@ -311,7 +311,7 @@ async function main() {
   const booking9Date = createBookingDate(1, 9, 0);
   const booking9 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking9Date).toISOString().slice(0, 10).replace(/-/g, '')}-09`,
+      bookingNumber: "TNX009",
       queueNumber: 1,
       bookingDate: booking9Date,
       totalPrice: cuciCepatMobil.price,
@@ -329,7 +329,7 @@ async function main() {
   const booking10Date = createBookingDate(1, 12, 0);
   const booking10 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking10Date).toISOString().slice(0, 10).replace(/-/g, '')}-10`,
+      bookingNumber: "TNX010",
       queueNumber: 2,
       bookingDate: booking10Date,
       totalPrice: cuciMotor.price,
@@ -347,7 +347,7 @@ async function main() {
   const booking11Date = createBookingDate(1, 17, 30);
   const booking11 = await prisma.booking.create({
     data: {
-      bookingNumber: `TC-${new Date(booking11Date).toISOString().slice(0, 10).replace(/-/g, '')}-11`,
+      bookingNumber: "TNX011",
       queueNumber: 3,
       bookingDate: booking11Date,
       totalPrice: cuciLengkapMobil.price,

@@ -97,7 +97,15 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    // 2. Validasi Role - Hanya boleh CUSTOMER
+    // 2. Validasi Panjang Password
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password minimal 8 karakter.",
+      });
+    }
+
+    // 3. Validasi Role - Hanya boleh CUSTOMER
     if (role && role !== "CUSTOMER") {
       return res.status(403).json({
         status: "error",
@@ -105,7 +113,7 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    // 3. Cek Apakah User Sudah Ada
+    // Cek Apakah User Sudah Ada
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [{ email: email }, { username: username }, { phone: phone }],
@@ -138,6 +146,19 @@ export const register = async (req: Request, res: Response) => {
         role: "CUSTOMER", // Force role to CUSTOMER
       },
     });
+
+    // Linking Logic: Hubungkan transaksi guest sebelumnya (berdasarkan nomor telepon) ke user baru ini
+    if (phone) {
+      await prisma.booking.updateMany({
+        where: {
+          guestPhone: phone,
+          userId: null
+        },
+        data: {
+          userId: newUser.id
+        }
+      });
+    }
 
     res.status(201).json({
       status: "success",
@@ -221,7 +242,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       };
 
       const newToken = jwt.sign(newPayload, secret, {
-        expiresIn: "1d",
+        expiresIn: "30d",
       });
 
       // 7. Kirim token baru

@@ -92,16 +92,22 @@ export const getSuperadminLocations = async (req: AuthRequest, res: Response) =>
             where: { role: 'ADMIN' }
         });
 
-        // Hitung tenant baru bulan ini
+        // Hitung tenant baru bulan ini (WIB)
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const year = now.toLocaleString("en-US", { timeZone: "Asia/Jakarta", year: "numeric" });
+        const month = now.toLocaleString("en-US", { timeZone: "Asia/Jakarta", month: "2-digit" });
+
+        const startOfMonth = new Date(`${year}-${month}-01T00:00:00.000+07:00`);
+        // End of month: set to day 0 of NEXT month
+        const nextMonth = parseInt(month, 10) === 12 ? 1 : parseInt(month, 10) + 1;
+        const nextYear = parseInt(month, 10) === 12 ? parseInt(year, 10) + 1 : year;
+        const startOfNextMonth = new Date(`${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00.000+07:00`);
 
         const totalNewTenantsThisMonth = await prisma.location.count({
             where: {
                 createdAt: {
                     gte: startOfMonth,
-                    lte: endOfMonth
+                    lt: startOfNextMonth
                 }
             }
         });

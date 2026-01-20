@@ -22,10 +22,14 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
         const activeAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: true } });
         const inactiveAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: false } });
 
-        // Hitung admin yang login hari ini
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        // Hitung admin yang login hari ini (WIB)
+        const formatLocalDate = (date: Date) => {
+            return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
+        };
+
+        const todayStr = formatLocalDate(new Date());
+        const startOfToday = new Date(`${todayStr}T00:00:00.000+07:00`);
+        const endOfToday = new Date(`${todayStr}T23:59:59.999+07:00`);
 
         const loginToday = await prisma.user.count({
             where: {

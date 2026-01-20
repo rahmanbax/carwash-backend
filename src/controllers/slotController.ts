@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 
-const OPENING_HOUR_UTC = 8;
-const CLOSING_HOUR_UTC = 18;
+const OPENING_HOUR = 8; // 08:00 WIB
+const CLOSING_HOUR = 18; // 18:00 WIB
 const SLOT_LIMIT = 3;
 
 export const getSlotAvailability = async (req: Request, res: Response) => {
@@ -42,26 +42,20 @@ export const getSlotAvailability = async (req: Request, res: Response) => {
       });
     }
 
+    // Parsing dateQuery (YYYY-MM-DD)
+    // Kita buat objek Date dengan jam 00:00 di Asia/Jakarta
+    const [year, month, day] = (dateQuery as string).split('-').map(Number);
 
-    const requestedDate = new Date(dateQuery as string);
-    if (isNaN(requestedDate.getTime())) {
-      return res.status(400).json({
-        status: "error",
-        message: "Format tanggal tidak valid. Gunakan YYYY-MM-DD.",
-      });
-    }
-
-    const startOfDayUTC = new Date(requestedDate);
-    startOfDayUTC.setUTCHours(OPENING_HOUR_UTC, 0, 0, 0);
-    const endOfDayUTC = new Date(requestedDate);
-    endOfDayUTC.setUTCHours(CLOSING_HOUR_UTC, 0, 0, 0);
+    // Buat range pencarian di database (Literal UTC)
+    const startDate = new Date(Date.UTC(year, month - 1, day, OPENING_HOUR, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month - 1, day, CLOSING_HOUR, 0, 0, 0));
 
     const bookingsOnDate = await prisma.booking.findMany({
       where: {
         locationId: locationId,
         bookingDate: {
-          gte: startOfDayUTC, // gte = greater than or equal to
-          lte: endOfDayUTC, // lte = less than or equal to
+          gte: startDate,
+          lte: endDate,
         },
         NOT: { status: "DIBATALKAN" },
       },
@@ -77,32 +71,33 @@ export const getSlotAvailability = async (req: Request, res: Response) => {
       bookingCounts.set(slotTime, (bookingCounts.get(slotTime) || 0) + 1);
     }
 
-    // Respons akhir dengan semua slot dari jam buka hingga tutup
     const simplifiedSlots = [];
-    let currentSlotTime = new Date(startOfDayUTC);
-
     let continuousQueueNumber = 1;
 
-    while (currentSlotTime <= endOfDayUTC) {
-      const slotTimeString = currentSlotTime.toISOString();
-      const bookedCount = bookingCounts.get(slotTimeString) || 0;
+    // Loop dari jam 08:00 sampai 18:00
+    for (let hour = OPENING_HOUR; hour <= CLOSING_HOUR; hour++) {
+      // Slot XX:00 dan XX:30
+      const minutes = [0, 30];
 
-      // Detail antrian seperti sebelumnya
-      for (let i = 1; i <= SLOT_LIMIT; i++) {
-        simplifiedSlots.push({
-          time: slotTimeString,
-          queueNumber: continuousQueueNumber,
-          status: i <= bookedCount ? "BOOKED" : "AVAILABLE",
-        });
+      for (const minute of minutes) {
+        // Jangan lewatkan jam tutup tepat (biasanya slot terakhir jam 17:30)
+        if (hour === CLOSING_HOUR) break;
 
-        continuousQueueNumber++;
+        const currentSlotISO = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0)).toISOString();
+
+        const bookedCount = bookingCounts.get(currentSlotISO) || 0;
+
+        for (let i = 1; i <= SLOT_LIMIT; i++) {
+          simplifiedSlots.push({
+            time: currentSlotISO,
+            queueNumber: continuousQueueNumber,
+            status: i <= bookedCount ? "BOOKED" : "AVAILABLE",
+          });
+          continuousQueueNumber++;
+        }
       }
-
-      // Pindah ke slot 30 menit berikutnya
-      currentSlotTime.setUTCMinutes(currentSlotTime.getUTCMinutes() + 30);
     }
 
-    // Kirim respons sukses
     res.status(200).json({
       status: "success",
       message: "Berhasil mengambil data ketersediaan slot di lokasi " + locationId,
@@ -110,8 +105,6 @@ export const getSlotAvailability = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error saat mengambil ketersediaan slot:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+    res.status(500).json({ status: "error", message: "Terjadi kesalahan pada server." });
   }
 };

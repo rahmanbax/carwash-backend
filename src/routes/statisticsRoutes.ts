@@ -87,7 +87,7 @@ const router = Router();
  *                         properties:
  *                           bookingNumber:
  *                             type: string
- *                             example: "TC-0114202601"
+ *                             example: "TNX001"
  *                           plate:
  *                             type: string
  *                             example: "D 1234 ABC"
@@ -179,7 +179,7 @@ const router = Router();
  *                         properties:
  *                           bookingNumber:
  *                             type: string
- *                             example: "TC-1701202601"
+ *                             example: "TNX001"
  *                           plate:
  *                             type: string
  *                             example: "B 1234 ABC"

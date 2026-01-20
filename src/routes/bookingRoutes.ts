@@ -53,7 +53,7 @@ const router = Router();
  *                         example: DICUCI
  *                       nomorBooking:
  *                         type: string
- *                         example: "TC-0801202601"
+ *                         example: "TNX001"
  *                       tanggalWaktu:
  *                         type: string
  *                         format: date-time
@@ -136,7 +136,7 @@ const router = Router();
  *                   properties:
  *                     nomorBooking:
  *                       type: string
- *                       example: "TC-0801202601"
+ *                       example: "TNX001"
  *                     tanggalWaktu:
  *                       type: string
  *                       format: date-time
@@ -224,7 +224,7 @@ router.post("/", authMiddleware, createBooking);
  *                       example: DICUCI
  *                     nomorBooking:
  *                       type: string
- *                       example: "TC-0801202601"
+ *                       example: "TNX001"
  *                     tanggalWaktu:
  *                       type: string
  *                       format: date-time
@@ -299,7 +299,7 @@ router.get("/:id", authMiddleware, getBookingById);
  *                   properties:
  *                     nomorBooking:
  *                       type: string
- *                       example: "TC-0801202601"
+ *                       example: "TNX001"
  *                     namaKendaraan:
  *                       type: string
  *                       example: "Toyota Avanza"
@@ -358,10 +358,6 @@ router.get("/:id/timeline", authMiddleware, getBookingTimeline);
  *                 type: string
  *                 enum: [DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI, DIBATALKAN]
  *                 example: DICUCI
- *               notes:
- *                 type: string
- *                 description: Catatan tambahan untuk riwayat status.
- *                 example: "Kendaraan sedang mulai disabun."
  *     responses:
  *       '200':
  *         description: Status booking berhasil diperbarui.

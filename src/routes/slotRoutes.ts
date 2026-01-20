@@ -24,7 +24,7 @@ const router = Router();
  *           type: string
  *           format: date
  *         description: Tanggal yang ingin dicek dalam format YYYY-MM-DD.
- *         example: "2025-11-29"
+ *         example: "DYNAMIC_CURRENT_DATE"
  *       - in: query
  *         name: locationId
  *         required: true

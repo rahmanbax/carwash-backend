@@ -37,7 +37,7 @@ export const authMiddleware = (
       .status(500)
       .json({
         status: "error",
-        message: "Kunci rahasia JWT tidak dikonfigurasi.",
+        message: "Terjadi kesalahan pada server.",
       });
   }
 

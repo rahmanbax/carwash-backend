@@ -6,8 +6,8 @@ import { BookingStatus } from "@prisma/client";
 
 // Konfigurasi slot dan jam operasional
 const SLOT_LIMIT = 3;
-const OPENING_HOUR_UTC = 8; // 08:00 WIB
-const CLOSING_HOUR_UTC = 18; // 18:00 WIB
+const OPENING_HOUR = 8; // 08:00
+const CLOSING_HOUR = 18; // 18:00
 
 export const createBooking = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
@@ -41,12 +41,14 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         message: "Tidak bisa membuat booking di masa lalu.",
       });
     }
+    // Validasi jam operasional menggunakan waktu UTC (sama seperti request)
     const bookingHour = bookingDateTime.getUTCHours();
     const bookingMinutes = bookingDateTime.getUTCMinutes();
-    if (bookingHour < OPENING_HOUR_UTC || bookingHour >= CLOSING_HOUR_UTC) {
+
+    if (bookingHour < OPENING_HOUR || bookingHour >= CLOSING_HOUR) {
       return res.status(400).json({
         status: "error",
-        message: `Jam booking harus antara 08:00 dan 18:00 WIB.`,
+        message: `Jam booking harus antara 08:00 dan 18:00.`,
       });
     }
     if (bookingMinutes !== 0 && bookingMinutes !== 30) {
@@ -75,6 +77,23 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         .status(400)
         .json({ status: "error", message: "ID layanan tidak valid." });
     }
+
+    // Pengecekan apakah user sudah memiliki booking aktif di waktu yang sama
+    const existingUserBooking = await prisma.booking.findFirst({
+      where: {
+        userId: userId,
+        bookingDate: bookingDateTime,
+        NOT: { status: "DIBATALKAN" },
+      },
+    });
+
+    if (existingUserBooking) {
+      return res.status(409).json({
+        status: "error",
+        message: "Anda sudah memiliki pesanan aktif pada jam ini.",
+      });
+    }
+
     const totalPrice = service.price;
 
     const createdBooking = await prisma.$transaction(async (tx) => {
@@ -91,11 +110,14 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       }
 
       // Buat nomor booking dan nomor antrian
-      const startOfDay = new Date(bookingDateTime);
-      startOfDay.setHours(0, 0, 0, 0);
+      // Fungsi helper untuk mendapatkan tanggal lokal Jakarta dalam format YYYY-MM-DD
+      const getLocalDateStr = (date: Date) => {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
+      };
 
-      const endOfDay = new Date(bookingDateTime);
-      endOfDay.setHours(23, 59, 59, 999);
+      const bookingDateStr = getLocalDateStr(bookingDateTime);
+      const startOfDay = new Date(`${bookingDateStr}T00:00:00.000+07:00`);
+      const endOfDay = new Date(`${bookingDateStr}T23:59:59.999+07:00`);
 
       const bookingsTodayCount = await tx.booking.count({
         where: {
@@ -108,17 +130,25 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
       const queueNumber = bookingsTodayCount + 1;
 
-      const day = String(bookingDateTime.getDate()).padStart(2, "0");
-      const month = String(bookingDateTime.getMonth() + 1).padStart(2, "0");
-      const year = bookingDateTime.getFullYear();
-      const dateString = `${day}${month}${year}`;
-      const queueString = String(queueNumber).padStart(2, "0");
-      const bookingNumber = `TC-${dateString}${queueString}`;
+      // Ambil komponen tanggal lokal untuk nomor booking
+      const localeParts = new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'Asia/Jakarta'
+      }).formatToParts(bookingDateTime);
 
-      // Buat booking baru di database
+      const day = localeParts.find(p => p.type === 'day')?.value;
+      const month = localeParts.find(p => p.type === 'month')?.value;
+      const year = localeParts.find(p => p.type === 'year')?.value;
+
+      const dateString = `${day}${month}${year}`;
+      const queueString = String(queueNumber).padStart(3, "0");
+
+      // 1. Buat booking baru dengan placeholder untuk bookingNumber
       const booking = await tx.booking.create({
         data: {
-          bookingNumber,
+          bookingNumber: `TEMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           queueNumber,
           bookingDate: bookingDateTime,
           totalPrice,
@@ -126,18 +156,28 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
           vehicle: { connect: { id: vehicleId } },
           service: { connect: { id: serviceId } },
           location: { connect: { id: locationId } },
+          bookingMethod: "APP",
         },
+      });
+
+      // 2. Generate bookingNumber final menggunakan ID dari database
+      const finalBookingNumber = `TNX${String(booking.id).padStart(3, "0")}`;
+
+      // 3. Update booking dengan nomor final
+      const updatedBooking = await tx.booking.update({
+        where: { id: booking.id },
+        data: { bookingNumber: finalBookingNumber }
       });
 
       await tx.bookingStatusHistory.create({
         data: {
-          bookingId: booking.id,
+          bookingId: updatedBooking.id,
           status: "BOOKED",
-          notes: "Pesanan berhasil dibuat", // Deskripsi seperti di gambar Anda
+          notes: "Pesanan berhasil dibuat",
         },
       });
 
-      return booking;
+      return updatedBooking;
     });
 
     const bookingDetails = await prisma.booking.findUnique({
@@ -164,9 +204,9 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       tanggalWaktu: bookingDetails.bookingDate,
       nomorAntrian: bookingDetails.queueNumber,
       kendaraan: {
-        platNomor: bookingDetails.vehicle.plate,
-        jenisKendaraan: bookingDetails.vehicle.type,
-        model: bookingDetails.vehicle.model,
+        platNomor: bookingDetails.vehicle!.plate,
+        jenisKendaraan: bookingDetails.vehicle!.type,
+        model: bookingDetails.vehicle!.model,
       },
       layanan: {
         namaPaket: bookingDetails.service.name,
@@ -231,9 +271,9 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
         tanggalWaktu: booking.bookingDate,
         nomorAntrian: booking.queueNumber,
         kendaraan: {
-          platNomor: booking.vehicle.plate,
-          jenisKendaraan: booking.vehicle.type,
-          model: booking.vehicle.model,
+          platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
+          jenisKendaraan: booking.vehicle ? booking.vehicle.type : booking.guestVehicleType,
+          model: booking.vehicle ? booking.vehicle.model : "Guest Vehicle",
         },
         layanan: {
           namaPaket: booking.service.name,
@@ -302,9 +342,9 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
       tanggalWaktu: booking.bookingDate,
       nomorAntrian: booking.queueNumber,
       kendaraan: {
-        platNomor: booking.vehicle.plate,
-        jenisKendaraan: booking.vehicle.type,
-        model: booking.vehicle.model,
+        platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
+        jenisKendaraan: booking.vehicle ? booking.vehicle.type : booking.guestVehicleType,
+        model: booking.vehicle ? booking.vehicle.model : "Guest Vehicle",
       },
       layanan: {
         namaPaket: booking.service.name,
@@ -352,6 +392,7 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
       },
       select: {
         bookingNumber: true,
+        guestPlate: true,
         vehicle: {
           select: {
             plate: true,
@@ -393,8 +434,8 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
 
     const responseData = {
       nomorBooking: booking.bookingNumber,
-      namaKendaraan: booking.vehicle.model,
-      platNomor: booking.vehicle.plate,
+      namaKendaraan: booking.vehicle ? booking.vehicle.model : "Guest Vehicle",
+      platNomor: booking.vehicle ? booking.vehicle.plate : (booking.guestPlate || ""),
       layanan: booking.service.name,
       timeline: formattedTimeline,
     };
@@ -415,7 +456,7 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
 export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
   try {
     const bookingId = parseInt(req.params.id, 10);
-    const { status, notes } = req.body;
+    const { status } = req.body;
     const userId = req.user?.userId;
     const userRole = req.user?.role;
 
@@ -481,7 +522,7 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
         data: {
           bookingId: bookingId,
           status: status,
-          notes: notes,
+          notes: `Status diperbarui menjadi ${status} oleh admin.`,
         },
       });
 
@@ -506,7 +547,7 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
         notificationMessage = "";
     }
 
-    if (notificationMessage) {
+    if (notificationMessage && updatedBooking.userId) {
       await prisma.notification.create({
         data: {
           title: "Status Berubah",

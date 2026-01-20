@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getMyProfile, updateMyProfile } from "../controllers/userController";
 import { authMiddleware } from "../middleware/authMiddleware";
-import { upload } from "../middleware/uploadMiddleware";
+import { upload, validateFileSignature } from "../middleware/uploadMiddleware";
 
 const router = Router();
 
@@ -181,6 +181,7 @@ router.put(
   "/profile",
   authMiddleware,
   upload.single("profilePhoto"),
+  validateFileSignature,
   updateMyProfile
 );
 

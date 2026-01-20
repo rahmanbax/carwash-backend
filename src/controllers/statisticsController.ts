@@ -2,12 +2,26 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import prisma from "../lib/prisma";
 
+const formatLocalTime = (date: Date) => {
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+};
+
+const formatLocalDate = (date: Date) => {
+    // Menggunakan Date.UTC agar searah dengan slotController (ISO String)
+    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+};
+
+const getLocalHour = (date: Date) => {
+    return date.getUTCHours();
+};
+
 export const getSuperadminStatistics = async (req: AuthRequest, res: Response) => {
     try {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
 
-        // Validasi autentikasi
         if (!userId || !userRole) {
             return res.status(401).json({
                 status: "error",
@@ -15,7 +29,6 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
             });
         }
 
-        // Validasi hanya SUPERADMIN yang bisa akses
         if (userRole !== "SUPERADMIN") {
             return res.status(403).json({
                 status: "error",
@@ -31,14 +44,13 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
 
         // 1. Total Tenant dan Admin
         const totalTenants = await prisma.location.count();
-
         const totalAdmins = await prisma.user.count({
             where: { role: "ADMIN" },
         });
 
         // 2. Pendapatan 1 Minggu Terakhir
         const oneWeekAgo = new Date(today);
-        oneWeekAgo.setDate(today.getDate() - 6); // 7 hari termasuk hari ini
+        oneWeekAgo.setDate(today.getDate() - 6);
 
         const bookingsLastWeek = await prisma.booking.findMany({
             where: {
@@ -55,11 +67,9 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
             },
         });
 
-        // Group by day
         const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
         const revenueByDay: { [key: string]: number } = {};
 
-        // Initialize all days in the week
         for (let i = 0; i < 7; i++) {
             const date = new Date(oneWeekAgo);
             date.setDate(oneWeekAgo.getDate() + i);
@@ -67,7 +77,6 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
             revenueByDay[dayName] = 0;
         }
 
-        // Sum revenue by day
         bookingsLastWeek.forEach((booking) => {
             const dayName = dayNames[booking.bookingDate.getDay()];
             revenueByDay[dayName] += booking.totalPrice;
@@ -75,8 +84,8 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
 
         const weeklyRevenue = {
             range: {
-                start: oneWeekAgo.toISOString().split("T")[0],
-                end: today.toISOString().split("T")[0],
+                start: formatLocalDate(oneWeekAgo),
+                end: formatLocalDate(today),
             },
             data: Object.entries(revenueByDay).map(([day, revenue]) => ({
                 day,
@@ -85,7 +94,7 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
         };
 
         // 3. Statistik Pencucian Hari Ini (per 2 jam)
-        const bookingsToday = await prisma.booking.findMany({
+        const bookingsTodayChart = await prisma.booking.findMany({
             where: {
                 bookingDate: {
                     gte: today,
@@ -100,8 +109,8 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
         const timeSlots = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"];
         const todayWashingStatistics = timeSlots.map((time) => {
             const hour = parseInt(time.split(":")[0]);
-            const count = bookingsToday.filter((booking) => {
-                const bookingHour = booking.bookingDate.getUTCHours();
+            const count = bookingsTodayChart.filter((booking) => {
+                const bookingHour = getLocalHour(booking.bookingDate);
                 return bookingHour >= hour && bookingHour < hour + 2;
             }).length;
 
@@ -109,7 +118,7 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
         });
 
         // 4. Antrian Kendaraan Hari Ini
-        const todayQueue = await prisma.booking.findMany({
+        const todayQueueItems = await prisma.booking.findMany({
             where: {
                 bookingDate: {
                     gte: today,
@@ -123,6 +132,8 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
                 bookingNumber: true,
                 bookingDate: true,
                 status: true,
+                guestPlate: true,
+                guestVehicleType: true,
                 vehicle: {
                     select: {
                         plate: true,
@@ -135,22 +146,21 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
             },
         });
 
-        const antrianFormatted = todayQueue.map((booking) => {
+        const antrianFormatted = todayQueueItems.map((booking) => {
             return {
                 bookingNumber: booking.bookingNumber,
-                plate: booking.vehicle.plate,
-                type: booking.vehicle.type.toLowerCase(),
-                queue_time: booking.bookingDate.toISOString().split("T")[1].substring(0, 5),
+                plate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
+                type: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),
+                queue_time: formatLocalTime(booking.bookingDate),
                 status: booking.status,
             };
         });
 
-        // Response
         res.status(200).json({
             status: "success",
             message: "Berhasil mengambil statistik.",
             data: {
-                date: today.toISOString().split("T")[0],
+                date: formatLocalDate(today),
                 totalTenant: totalTenants,
                 totalAdmin: totalAdmins,
                 weeklyRevenue,
@@ -172,7 +182,6 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
         const userId = req.user?.userId;
         const userRole = req.user?.role;
 
-        // Validasi autentikasi
         if (!userId || !userRole) {
             return res.status(401).json({
                 status: "error",
@@ -180,7 +189,6 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Validasi hanya ADMIN yang bisa akses (atau SUPERADMIN kalau mau bypass)
         if (userRole !== "ADMIN") {
             return res.status(403).json({
                 status: "error",
@@ -188,7 +196,6 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        // Ambil data user untuk mendapatkan locationId
         const user = await prisma.user.findUnique({
             where: { id: userId },
             select: { locationId: true }
@@ -202,7 +209,6 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
         }
 
         const locationId = user.locationId;
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -229,6 +235,7 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
 
         const todayRevenue = todayBookingsFinished.reduce((sum, b) => sum + b.totalPrice, 0);
 
+        // 2. Total Cuci Hari Ini
         const totalWashedTodayCount = await prisma.booking.count({
             where: {
                 locationId,
@@ -242,7 +249,7 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // 3. Antrian Aktif (BOOKED, DITERIMA)
+        // 3. Antrian Aktif
         const activeQueueCount = await prisma.booking.count({
             where: {
                 locationId,
@@ -256,7 +263,7 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        // 4. Pendapatan 1 Minggu Terakhir di lokasi ini
+        // 4. Pendapatan 1 Minggu Terakhir
         const oneWeekAgo = new Date(today);
         oneWeekAgo.setDate(today.getDate() - 6);
 
@@ -295,8 +302,8 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
 
         const weeklyRevenue = {
             range: {
-                start: oneWeekAgo.toISOString().split("T")[0],
-                end: today.toISOString().split("T")[0],
+                start: formatLocalDate(oneWeekAgo),
+                end: formatLocalDate(today),
             },
             data: Object.entries(revenueByDay).map(([day, revenue]) => ({
                 day,
@@ -304,8 +311,8 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             })),
         };
 
-        // 5. Statistik Pencucian Hari Ini (per 2 jam) di lokasi ini
-        const bookingsToday = await prisma.booking.findMany({
+        // 5. Statistik Pencucian Hari Ini (per 2 jam)
+        const bookingsTodayChart = await prisma.booking.findMany({
             where: {
                 locationId,
                 bookingDate: {
@@ -321,16 +328,16 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
         const timeSlots = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"];
         const todayWashingStatistics = timeSlots.map((time) => {
             const hour = parseInt(time.split(":")[0]);
-            const count = bookingsToday.filter((booking) => {
-                const bookingHour = booking.bookingDate.getUTCHours();
+            const count = bookingsTodayChart.filter((booking) => {
+                const bookingHour = getLocalHour(booking.bookingDate);
                 return bookingHour >= hour && bookingHour < hour + 2;
             }).length;
 
             return { time, value: count };
         });
 
-        // 6. Antrian Kendaraan Hari Ini di lokasi ini (Detail list)
-        const todayQueue = await prisma.booking.findMany({
+        // 6. Detail Antrian Hari Ini
+        const todayQueueItems = await prisma.booking.findMany({
             where: {
                 locationId,
                 bookingDate: {
@@ -345,6 +352,8 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
                 bookingNumber: true,
                 bookingDate: true,
                 status: true,
+                guestPlate: true,
+                guestVehicleType: true,
                 vehicle: {
                     select: {
                         plate: true,
@@ -357,22 +366,21 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
             },
         });
 
-        const antrianFormatted = todayQueue.map((booking) => {
+        const antrianFormatted = todayQueueItems.map((booking) => {
             return {
                 bookingNumber: booking.bookingNumber,
-                plate: booking.vehicle.plate,
-                type: booking.vehicle.type.toLowerCase(),
-                queue_time: booking.bookingDate.toISOString().split("T")[1].substring(0, 5),
+                plate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
+                type: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),
+                queue_time: formatLocalTime(booking.bookingDate),
                 status: booking.status,
             };
         });
 
-        // Response
         res.status(200).json({
             status: "success",
             message: "Berhasil mengambil statistik admin.",
             data: {
-                date: today.toISOString().split("T")[0],
+                date: formatLocalDate(today),
                 todayRevenue,
                 totalWashedToday: totalWashedTodayCount,
                 activeQueue: activeQueueCount,

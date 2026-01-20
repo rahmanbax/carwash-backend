@@ -128,18 +128,26 @@ model Booking {
   cancellationReason String?
   cancelledAt        DateTime?
 
-  // Relasi
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  // Guest fields for non-registered users (Admin walk-in)
+  guestName        String?
+  guestPhone       String?
+  guestPlate       String?
+  guestVehicleType VehicleType?
 
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
-  vehicleId Int
+  // Relasi
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int?
+
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+  vehicleId Int?
 
   location   Location @relation(fields: [locationId], references: [id])
   locationId Int
 
   service   Service @relation(fields: [serviceId], references: [id])
   serviceId Int
+
+  bookingMethod BookingMethod @default(APP)
 
   statusHistory BookingStatusHistory[]
 
@@ -182,4 +190,9 @@ model Notification {
   bookingId Int?
 
   createdAt DateTime @default(now())
+}
+
+enum BookingMethod {
+  APP
+  MANUAL
 }

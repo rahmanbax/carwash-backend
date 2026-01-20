@@ -1,8 +1,30 @@
 import { Router } from "express";
 import { login, register, refreshToken, logout, heartbeat } from "../controllers/authController";
 import { authMiddleware } from "../middleware/authMiddleware";
-
+import rateLimit from 'express-rate-limit';
 const router = Router();
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 5, // 5 percobaan
+    message: {
+        status: "error",
+        message: "Terlalu banyak percobaan login. Coba lagi dalam 15 menit."
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 10, // 10 registrasi per 15 menit
+    message: {
+        status: "error",
+        message: "Terlalu banyak percobaan registrasi. Coba lagi dalam 15 menit."
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 /**
  * @swagger
@@ -121,7 +143,7 @@ const router = Router();
  *                   type: string
  *                   example: User dengan email tersebut sudah ada.
  */
-router.post("/register", register);
+router.post("/register", registerLimiter, register);
 
 /**
  * @swagger
@@ -213,7 +235,7 @@ router.post("/register", register);
  *                   type: string
  *                   example: Username atau password salah.
  */
-router.post("/login", login);
+router.post("/login", loginLimiter, login);
 
 /**
  * @swagger
