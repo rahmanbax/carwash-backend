@@ -3,6 +3,10 @@ import { AuthRequest } from "../middleware/authMiddleware";
 import prisma from "../lib/prisma";
 import { VehicleType } from "@prisma/client";
 
+const SLOT_LIMIT = 3;
+const OPENING_HOUR = 8; // 08:00 WIB
+const CLOSING_HOUR = 18; // 18:00 WIB
+
 /**
  * Mendapatkan daftar transaksi (Booking) untuk Admin
  * Difilter berdasarkan lokasi yang dikelola admin
@@ -34,15 +38,15 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
 
         const { date } = req.query;
 
-        // Default ke hari ini jika tidak ada filter date
+        // Mendapatkan tanggal dalam format YYYY-MM-DD di Asia/Jakarta
+        const getJakartaDateStr = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d);
+
         const filterDate = date ? new Date(date as string) : new Date();
+        const dateStr = getJakartaDateStr(filterDate);
 
-        // Setup start dan end of day untuk query
-        const startOfDay = new Date(filterDate);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date(filterDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        // Setup start dan end of day eksplisit WIB (akan dikonversi otomatis ke UTC oleh Prisma)
+        const startOfDay = new Date(`${dateStr}T00:00:00.000+07:00`);
+        const endOfDay = new Date(`${dateStr}T23:59:59.999+07:00`);
 
         const whereCondition: any = {
             bookingDate: {
@@ -82,28 +86,25 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             }
         });
 
+        const toWIB = (date: Date) => {
+            const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+            return wibTime.toISOString().replace("Z", "+07:00");
+        };
+
         const formattedTransactions = bookings.map((booking) => {
             const bookingTime = new Date(booking.bookingDate);
             const estimateFinish = new Date(bookingTime.getTime() + 30 * 60000); // +30 menit
 
             return {
                 bookingNumber: booking.bookingNumber,
-                vehicle: {
-                    plate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
-                    type: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),
-                },
-                customer: {
-                    name: booking.user ? booking.user.name : booking.guestName,
-                    phone: booking.user ? booking.user.phone : booking.guestPhone,
-                },
-                service: {
-                    name: booking.service.name,
-                    price: booking.service.price,
-                },
-                time: {
-                    bookingTime: bookingTime,
-                    estimateFinish: estimateFinish,
-                },
+                vehiclePlate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
+                vehicleType: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),
+                customerName: booking.user ? booking.user.name : booking.guestName,
+                customerPhone: booking.user ? booking.user.phone : booking.guestPhone,
+                serviceName: booking.service.name,
+                servicePrice: booking.service.price,
+                bookingTime: toWIB(bookingTime),
+                estimateFinish: toWIB(estimateFinish),
                 status: booking.status,
                 bookingMethod: booking.bookingMethod,
             };
@@ -141,7 +142,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { name, phone, plate, vehicleType, serviceId } = req.body;
+        const { name, phone, plate, vehicleType, serviceId, bookingTime } = req.body;
 
         // 1. Validasi Input
         if (!name || !phone || !plate || !vehicleType || !serviceId) {
@@ -183,7 +184,43 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             where: { phone: phone }
         });
 
-        const transactionDate = new Date();
+        let transactionDate = new Date();
+        if (bookingTime) {
+            transactionDate = new Date(bookingTime);
+            if (isNaN(transactionDate.getTime())) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Format bookingTime tidak valid.",
+                });
+            }
+        }
+
+        // Helper untuk mendapatkan jam & menit dalam format WIB (UTC+7)
+        const getWIBTime = (date: Date) => {
+            const wib = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+            return {
+                hour: wib.getUTCHours(),
+                minute: wib.getUTCMinutes()
+            };
+        };
+
+        const { hour: hourWIB, minute: minuteWIB } = getWIBTime(transactionDate);
+
+        // Validasi Jam Operasional (08:00 - 18:00 WIB)
+        if (hourWIB < OPENING_HOUR || hourWIB >= CLOSING_HOUR) {
+            return res.status(400).json({
+                status: "error",
+                message: `Layanan hanya tersedia pada jam operasional (08:00 - 18:00 WIB). Saat ini: ${String(hourWIB).padStart(2, '0')}:${String(minuteWIB).padStart(2, '0')} WIB.`,
+            });
+        }
+
+        // Validasi Slot 30 Menit (Hanya jika bookingTime diisi manual)
+        if (bookingTime && (minuteWIB !== 0 && minuteWIB !== 30)) {
+            return res.status(400).json({
+                status: "error",
+                message: "Slot booking manual hanya tersedia setiap 30 menit (XX:00 atau XX:30).",
+            });
+        }
 
         // 5. Database Transaction untuk Create Booking
         const result = await prisma.$transaction(async (tx) => {
@@ -196,6 +233,19 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             const startOfDay = new Date(`${bookingDateStr}T00:00:00.000+07:00`);
             const endOfDay = new Date(`${bookingDateStr}T23:59:59.999+07:00`);
 
+            // Cek ketersediaan slot (Spesifik per lokasi)
+            const existingBookingsCountInSlot = await tx.booking.count({
+                where: {
+                    locationId: locationId,
+                    bookingDate: transactionDate,
+                    NOT: { status: "DIBATALKAN" },
+                },
+            });
+
+            if (existingBookingsCountInSlot >= SLOT_LIMIT) {
+                throw new Error("SLOT_FULL");
+            }
+
             const bookingsTodayCount = await tx.booking.count({
                 where: {
                     createdAt: {
@@ -206,21 +256,6 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             });
 
             const queueNumber = bookingsTodayCount + 1;
-
-            // Ambil komponen tanggal lokal untuk nomor booking
-            const localeParts = new Intl.DateTimeFormat('id-ID', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                timeZone: 'Asia/Jakarta'
-            }).formatToParts(transactionDate);
-
-            const day = localeParts.find(p => p.type === 'day')?.value;
-            const month = localeParts.find(p => p.type === 'month')?.value;
-            const year = localeParts.find(p => p.type === 'year')?.value;
-
-            const dateString = `${day}${month}${year}`;
-            const queueString = String(queueNumber).padStart(3, "0");
 
             // 1. Buat booking dengan placeholder
             const booking = await tx.booking.create({
@@ -263,13 +298,28 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             return updatedBooking;
         });
 
+        const toWIB = (date: Date) => {
+            const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+            return wibTime.toISOString().replace("Z", "+07:00");
+        };
+
         res.status(201).json({
             status: "success",
             message: "Transaksi berhasil dibuat.",
-            data: result,
+            data: {
+                ...result,
+                bookingDate: toWIB(result.bookingDate),
+            },
         });
 
     } catch (error) {
+        if (error instanceof Error && error.message === "SLOT_FULL") {
+            return res.status(409).json({
+                status: "error",
+                message: "Maaf, slot waktu ini sudah penuh. Silakan pilih waktu lain.",
+            });
+        }
+
         console.error("Error saat membuat transaksi:", error);
         res.status(500).json({
             status: "error",
@@ -305,7 +355,7 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             });
         }
 
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, search } = req.query;
 
         let startRange: Date;
         let endRange: Date;
@@ -336,6 +386,14 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             status: "SELESAI"
         };
 
+        if (search) {
+            whereCondition.OR = [
+                { bookingNumber: { contains: search as string, mode: 'insensitive' } },
+                { vehicle: { plate: { contains: search as string, mode: 'insensitive' } } },
+                { guestPlate: { contains: search as string, mode: 'insensitive' } }
+            ];
+        }
+
         if (userRole === "ADMIN") {
             whereCondition.locationId = admin.locationId;
         }
@@ -352,27 +410,21 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             }
         });
 
-        const formatLocalDate = (date: Date) => {
-            return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(date);
+        const toWIB = (date: Date) => {
+            const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+            return wibTime.toISOString().replace("Z", "+07:00");
         };
 
-
-
         const formattedHistory = bookings.map((booking) => ({
+            id: booking.id,
             bookingNumber: booking.bookingNumber,
-            date: formatLocalDate(booking.bookingDate),
-            vehicle: {
-                plate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
-                type: booking.vehicle ? booking.vehicle.type : (booking.guestVehicleType || ""),
-            },
-            customer: {
-                name: booking.user ? booking.user.name : booking.guestName,
-                phone: booking.user ? booking.user.phone : booking.guestPhone,
-            },
-            service: {
-                name: booking.service.name,
-                price: booking.service.price,
-            },
+            date: toWIB(booking.bookingDate),
+            vehiclePlate: booking.vehicle ? booking.vehicle.plate : (booking.guestPlate || "-"),
+            vehicleType: booking.vehicle ? booking.vehicle.type : (booking.guestVehicleType || ""),
+            customerName: booking.user ? booking.user.name : (booking.guestName || "-"),
+            customerPhone: booking.user ? booking.user.phone : (booking.guestPhone || "-"),
+            serviceName: booking.service.name,
+            servicePrice: booking.service.price,
             status: booking.status
         }));
 
@@ -381,8 +433,8 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             message: "Berhasil mengambil riwayat transaksi.",
             data: {
                 range: {
-                    start: formatLocalDate(startRange),
-                    end: formatLocalDate(endRange),
+                    start: toWIB(startRange),
+                    end: toWIB(endRange),
                 },
                 transactions: formattedHistory,
             },
@@ -416,13 +468,21 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
         // 1. Ambil data booking untuk cek lokasinya
         const bookingToUpdate = await prisma.booking.findUnique({
             where: { id: bookingId },
-            select: { id: true, locationId: true, bookingNumber: true, userId: true },
+            select: { id: true, status: true, locationId: true, bookingNumber: true, userId: true },
         });
 
         if (!bookingToUpdate) {
             return res.status(404).json({
                 status: "error",
                 message: "Transaksi tidak ditemukan.",
+            });
+        }
+
+        // Jika transaksi sudah selesai, tidak bisa diubah lagi statusnya
+        if (bookingToUpdate.status === "SELESAI") {
+            return res.status(400).json({
+                status: "error",
+                message: "Transaksi sudah selesai dan tidak dapat diubah statusnya lagi.",
             });
         }
 
@@ -448,16 +508,24 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
 
         // 3. Update Status dan Simpan History
         const updatedBooking = await prisma.$transaction(async (tx) => {
+            const updateData: any = { status };
+
+            // Jika status diubah menjadi SELESAI, otomatis set paymentStatus menjadi PAID_CASH
+            if (status === "SELESAI") {
+                updateData.paymentStatus = "PAID_CASH";
+            }
+
             const booking = await tx.booking.update({
                 where: { id: bookingId },
-                data: { status },
+                data: updateData,
             });
 
             await tx.bookingStatusHistory.create({
                 data: {
                     bookingId,
                     status,
-                    notes: `Status diperbarui menjadi ${status} oleh admin.`,
+                    notes: `Status diperbarui menjadi ${status}.`,
+                    createdAt: new Date(), // Explicitly set to application time
                 },
             });
 
@@ -490,8 +558,12 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
 
         res.status(200).json({
             status: "success",
-            message: `Status transaksi #${updatedBooking.bookingNumber} berhasil diubah menjadi ${status}.`,
-            data: updatedBooking,
+            message: `Status transaksi ${updatedBooking.bookingNumber} berhasil diubah menjadi ${status}.`,
+            data: {
+                id: updatedBooking.id,
+                bookingNumber: updatedBooking.bookingNumber,
+                status: updatedBooking.status
+            }
         });
 
     } catch (error) {

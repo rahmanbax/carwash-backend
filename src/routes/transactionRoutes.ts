@@ -26,7 +26,7 @@ const router = Router();
  *           type: string
  *           format: date
  *         description: "Filter transaksi berdasarkan tanggal (YYYY-MM-DD). Jika kosong, menampilkan data hari ini."
- *         example: "DYNAMIC_CURRENT_DATE"
+ *         example: "2026-01-20"
  *     description: Endpoint ini menampilkan daftar transaksi lengkap. Untuk ADMIN, hanya akan tampil transaksi di lokasi yang dikelolanya.
  *     responses:
  *       '200':
@@ -47,7 +47,7 @@ const router = Router();
  *                   properties:
  *                     date:
  *                       type: string
- *                       example: "DYNAMIC_CURRENT_DATE"
+ *                       example: "2026-01-20"
  *                     transactions:
  *                       type: array
  *                       items:
@@ -56,42 +56,32 @@ const router = Router();
  *                           bookingNumber:
  *                             type: string
  *                             example: "TNX001"
- *                           vehicle:
- *                             type: object
- *                             properties:
- *                               plate:
- *                                 type: string
- *                                 example: "B 1234 ABC"
- *                               type:
- *                                 type: string
- *                                 example: "mobil"
- *                           customer:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                                 example: "John Doe"
- *                               phone:
- *                                 type: string
- *                                 example: "081234567890"
- *                           service:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                                 example: "Cuci Express"
- *                               price:
- *                                 type: number
- *                                 example: 50000
- *                           time:
- *                             type: object
- *                             properties:
- *                               bookingTime:
- *                                 type: string
- *                                 example: "15:00"
- *                               estimateFinish:
- *                                 type: string
- *                                 example: "15:30"
+ *                           vehiclePlate:
+ *                             type: string
+ *                             example: "B 1234 ABC"
+ *                           vehicleType:
+ *                             type: string
+ *                             example: "mobil"
+ *                           customerName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           customerPhone:
+ *                             type: string
+ *                             example: "081234567890"
+ *                           serviceName:
+ *                             type: string
+ *                             example: "Cuci Express"
+ *                           servicePrice:
+ *                             type: number
+ *                             example: 50000
+ *                           bookingTime:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2026-01-20T08:00:00.000Z"
+ *                           estimateFinish:
+ *                             type: string
+ *                             format: date-time
+ *                             example: "2026-01-20T08:45:00.000Z"
  *                           status:
  *                             type: string
  *                             example: "BOOKED"
@@ -133,6 +123,11 @@ const router = Router();
  *               serviceId:
  *                 type: integer
  *                 example: 1
+ *               bookingTime:
+ *                 type: string
+ *                 format: date-time
+ *                 description: (Opsional) Waktu booking jika ingin ditentukan, jika kosong akan menggunakan waktu sekarang. Format ISO 8601 (UTC).
+ *                 example: "2026-01-20T10:30:00.000Z"
  *     responses:
  *       '201':
  *         description: Transaksi berhasil dibuat.
@@ -182,8 +177,43 @@ const router = Router();
  *                       example: "MANUAL"
  *       '400':
  *         description: Input tidak valid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Nama, nomor telepon, plat nomor, jenis kendaraan, dan layanan wajib diisi."
  *       '401':
  *         description: Tidak terautentikasi atau bukan admin.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Akses ditolak. Hanya ADMIN yang dapat membuat transaksi ini."
+ *       '409':
+ *         description: Maaf, slot waktu ini sudah penuh. Silakan pilih waktu lain.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Maaf, slot waktu ini sudah penuh. Silakan pilih waktu lain."
  */
 router.get("/", authMiddleware, getTransactionList);
 router.post("/", authMiddleware, createTransaction);
@@ -209,6 +239,11 @@ router.post("/", authMiddleware, createTransaction);
  *           type: string
  *           format: date
  *         description: "Tanggal akhir (YYYY-MM-DD). Jika kosong, default ke akhir bulan ini."
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian berdasarkan nomor booking atau plat nomor (case-insensitive)."
  *     description: Endpoint ini mengembalikan data transaksi selama 1 bulan berjalan atau berdasarkan range tanggal yang dipilih.
  *     responses:
  *       '200':
@@ -229,48 +264,45 @@ router.post("/", authMiddleware, createTransaction);
  *                       properties:
  *                         start:
  *                           type: string
- *                           example: "2026-01-01"
+ *                           format: date-time
+ *                           example: "2026-01-01T00:00:00.000Z"
  *                         end:
  *                           type: string
- *                           example: "2026-01-31"
+ *                           format: date-time
+ *                           example: "2026-01-31T23:59:59.999Z"
  *                     transactions:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
  *                           bookingNumber:
  *                             type: string
  *                             example: "TNX001"
  *                           date:
  *                             type: string
- *                             example: "DYNAMIC_CURRENT_DATE"
- *                           vehicle:
- *                             type: object
- *                             properties:
- *                               plate:
- *                                 type: string
- *                                 example: "B 1234 ABC"
- *                               type:
- *                                 type: string
- *                                 example: "MOBIL"
- *                           customer:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                                 example: "John Doe"
- *                               phone:
- *                                 type: string
- *                                 example: "081234567890"
- *                           service:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                                 example: "Cuci Express"
- *                               price:
- *                                 type: number
- *                                 example: 50000
+ *                             format: date-time
+ *                             example: "2026-01-20T15:00:00.000Z"
+ *                           vehiclePlate:
+ *                             type: string
+ *                             example: "B 1234 ABC"
+ *                           vehicleType:
+ *                             type: string
+ *                             example: "MOBIL"
+ *                           customerName:
+ *                             type: string
+ *                             example: "John Doe"
+ *                           customerPhone:
+ *                             type: string
+ *                             example: "081234567890"
+ *                           serviceName:
+ *                             type: string
+ *                             example: "Cuci Express"
+ *                           servicePrice:
+ *                             type: number
+ *                             example: 50000
  *                           status:
  *                             type: string
  *                             example: "SELESAI"
@@ -321,7 +353,7 @@ router.get("/history", authMiddleware, getTransactionHistory);
  *                   example: success
  *                 message:
  *                   type: string
- *                   example: "Status transaksi #TNX001 berhasil diubah menjadi DICUCI."
+ *                   example: "Status transaksi TNX001 berhasil diubah menjadi DICUCI."
  *                 data:
  *                   type: object
  *                   properties:

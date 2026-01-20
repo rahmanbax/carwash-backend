@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import prisma from "../lib/prisma";
 import * as qrcode from "qrcode";
@@ -8,6 +8,11 @@ import { BookingStatus } from "@prisma/client";
 const SLOT_LIMIT = 3;
 const OPENING_HOUR = 8; // 08:00
 const CLOSING_HOUR = 18; // 18:00
+
+const toWIB = (date: Date) => {
+  const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  return wibTime.toISOString().replace("Z", "+07:00");
+};
 
 export const createBooking = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
@@ -97,9 +102,10 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     const totalPrice = service.price;
 
     const createdBooking = await prisma.$transaction(async (tx) => {
-      // Cek ketersediaan slot
+      // Cek ketersediaan slot (Spesifik per lokasi)
       const existingBookingsCountInSlot = await tx.booking.count({
         where: {
+          locationId: locationId,
           bookingDate: bookingDateTime,
           NOT: { status: "DIBATALKAN" },
         },
@@ -130,21 +136,6 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
       const queueNumber = bookingsTodayCount + 1;
 
-      // Ambil komponen tanggal lokal untuk nomor booking
-      const localeParts = new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'Asia/Jakarta'
-      }).formatToParts(bookingDateTime);
-
-      const day = localeParts.find(p => p.type === 'day')?.value;
-      const month = localeParts.find(p => p.type === 'month')?.value;
-      const year = localeParts.find(p => p.type === 'year')?.value;
-
-      const dateString = `${day}${month}${year}`;
-      const queueString = String(queueNumber).padStart(3, "0");
-
       // 1. Buat booking baru dengan placeholder untuk bookingNumber
       const booking = await tx.booking.create({
         data: {
@@ -174,6 +165,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
           bookingId: updatedBooking.id,
           status: "BOOKED",
           notes: "Pesanan berhasil dibuat",
+          createdAt: new Date(),
         },
       });
 
@@ -201,7 +193,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
     const responseData = {
       nomorBooking: bookingDetails.bookingNumber,
-      tanggalWaktu: bookingDetails.bookingDate,
+      tanggalWaktu: toWIB(bookingDetails.bookingDate),
       nomorAntrian: bookingDetails.queueNumber,
       kendaraan: {
         platNomor: bookingDetails.vehicle!.plate,
@@ -268,7 +260,7 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
         id: booking.id, // Selalu baik untuk menyertakan ID
         status: booking.status, // Frontend butuh ini untuk menampilkan status
         nomorBooking: booking.bookingNumber,
-        tanggalWaktu: booking.bookingDate,
+        tanggalWaktu: toWIB(booking.bookingDate),
         nomorAntrian: booking.queueNumber,
         kendaraan: {
           platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
@@ -339,7 +331,7 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
       id: booking.id,
       status: booking.status,
       nomorBooking: booking.bookingNumber,
-      tanggalWaktu: booking.bookingDate,
+      tanggalWaktu: toWIB(booking.bookingDate),
       nomorAntrian: booking.queueNumber,
       kendaraan: {
         platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
@@ -368,16 +360,10 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.userId;
+export const getBookingTimeline = async (req: Request, res: Response) => {
   const bookingId = parseInt(req.params.id, 10);
 
   // 1. Validasi Input
-  if (!userId) {
-    return res
-      .status(401)
-      .json({ status: "error", message: "User tidak terautentikasi." });
-  }
   if (isNaN(bookingId)) {
     return res
       .status(400)
@@ -385,10 +371,9 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const booking = await prisma.booking.findFirst({
+    const booking = await prisma.booking.findUnique({
       where: {
         id: bookingId,
-        userId: userId,
       },
       select: {
         bookingNumber: true,
@@ -411,7 +396,7 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
     if (!booking) {
       return res.status(404).json({
         status: "error",
-        message: "Booking tidak ditemukan atau Anda tidak memiliki hak akses.",
+        message: "Booking tidak ditemukan.",
       });
     }
 
@@ -428,7 +413,7 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
 
     const formattedTimeline = statusHistory.map((history) => ({
       status: history.status,
-      waktu: history.createdAt,
+      waktu: toWIB(history.createdAt),
       catatan: history.notes,
     }));
 
@@ -447,126 +432,6 @@ export const getBookingTimeline = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Error saat mengambil timeline booking:", error);
-    res
-      .status(500)
-      .json({ status: "error", message: "Terjadi kesalahan pada server." });
-  }
-};
-
-export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
-  try {
-    const bookingId = parseInt(req.params.id, 10);
-    const { status } = req.body;
-    const userId = req.user?.userId;
-    const userRole = req.user?.role;
-
-    if (!userId || !userRole) {
-      return res.status(401).json({
-        status: "error",
-        message: "User tidak terautentikasi.",
-      });
-    }
-
-    // 1. Ambil data booking untuk cek lokasinya
-    const bookingToUpdate = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: { locationId: true },
-    });
-
-    if (!bookingToUpdate) {
-      return res.status(404).json({
-        status: "error",
-        message: "Booking tidak ditemukan.",
-      });
-    }
-
-    // 2. Cek Otorisasi
-    // Superadmin boleh update semua
-    if (userRole !== "SUPERADMIN") {
-      // Jika bukan Superadmin, harus Admin
-      if (userRole !== "ADMIN") {
-        return res.status(403).json({
-          status: "error",
-          message: "Akses ditolak. Anda tidak memiliki izin untuk mengubah status booking.",
-        });
-      }
-
-      // Jika Admin, cek apakah lokasinya sesuai
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { locationId: true },
-      });
-
-      if (!user || user.locationId !== bookingToUpdate.locationId) {
-        return res.status(403).json({
-          status: "error",
-          message: "Akses ditolak. Anda hanya dapat mengubah status booking di lokasi Anda bertugas.",
-        });
-      }
-    }
-
-    // Validasi input status
-    if (!status || !Object.values(BookingStatus).includes(status)) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Status tidak valid." });
-    }
-
-    const updatedBooking = await prisma.$transaction(async (tx) => {
-      const booking = await tx.booking.update({
-        where: { id: bookingId },
-        data: { status: status },
-      });
-
-      await tx.bookingStatusHistory.create({
-        data: {
-          bookingId: bookingId,
-          status: status,
-          notes: `Status diperbarui menjadi ${status} oleh admin.`,
-        },
-      });
-
-      return booking;
-    });
-
-    let notificationMessage = `No. Booking #${updatedBooking.bookingNumber} `;
-    switch (updatedBooking.status) {
-      case "DITERIMA":
-        notificationMessage += "telah dikonfirmasi dan diterima oleh petugas.";
-        break;
-      case "DICUCI":
-        notificationMessage += "sedang dalam proses pencucian.";
-        break;
-      case "SIAP_DIAMBIL":
-        notificationMessage += "telah selesai dicuci dan siap untuk diambil.";
-        break;
-      case "SELESAI":
-        notificationMessage += "telah selesai dan sudah diambil.";
-        break;
-      default:
-        notificationMessage = "";
-    }
-
-    if (notificationMessage && updatedBooking.userId) {
-      await prisma.notification.create({
-        data: {
-          title: "Status Berubah",
-          message: notificationMessage,
-          type: "STATUS_UPDATE",
-          userId: updatedBooking.userId,
-          bookingId: updatedBooking.id,
-        },
-      });
-    }
-
-    res.status(200).json({
-      status: "success",
-      message: `Status booking berhasil diubah menjadi ${status}.`,
-      data: updatedBooking,
-    });
-  } catch (error) {
-    // ... (handle error, terutama jika booking tidak ditemukan)
-    console.error("Error saat update status booking:", error);
     res
       .status(500)
       .json({ status: "error", message: "Terjadi kesalahan pada server." });

@@ -4,7 +4,6 @@ import {
   getMyBookings,
   getBookingById,
   getBookingTimeline,
-  updateBookingStatus,
 } from "../controllers/bookingController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -271,8 +270,6 @@ router.get("/:id", authMiddleware, getBookingById);
  *   get:
  *     summary: Mendapatkan riwayat status (timeline) untuk booking spesifik
  *     tags: [Bookings]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -324,52 +321,9 @@ router.get("/:id", authMiddleware, getBookingById);
  *                           catatan:
  *                             type: string
  *                             example: "Pesanan berhasil dibuat"
- *       '401':
- *         description: Tidak terautentikasi.
- *       '404':
- *         description: Booking tidak ditemukan atau bukan milik user.
- */
-router.get("/:id/timeline", authMiddleware, getBookingTimeline);
-
-/**
- * @swagger
- * /api/bookings/{id}/status:
- *   patch:
- *     summary: Memperbarui status booking (Hanya Admin Lokasi atau Superadmin)
- *     tags: [Bookings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID unik dari booking.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [status]
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI, DIBATALKAN]
- *                 example: DICUCI
- *     responses:
- *       '200':
- *         description: Status booking berhasil diperbarui.
- *       '400':
- *         description: Input tidak valid.
- *       '401':
- *         description: Tidak terautentikasi.
- *       '403':
- *         description: Akses ditolak. Bukan Admin dari lokasi ini atau bukan Superadmin.
  *       '404':
  *         description: Booking tidak ditemukan.
  */
-router.patch("/:id/status", authMiddleware, updateBookingStatus);
+router.get("/:id/timeline", getBookingTimeline);
 
 export default router;

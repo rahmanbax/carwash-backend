@@ -5,6 +5,11 @@ import PDFDocument from "pdfkit-table";
 import { format } from "date-fns";
 import path from "path";
 
+const toWIB = (date: Date) => {
+    const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    return wibTime.toISOString().replace("Z", "+07:00");
+};
+
 /**
  * Membuat Invoice baru dari daftar booking yang dipilih
  */
@@ -151,8 +156,9 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
             // Row data
             doc.fillColor("#333333");
             xPos = tableLeft + 10;
+            const toWIB = (date: Date) => new Date(date.getTime() + 7 * 60 * 60 * 1000);
             const rowData = [
-                format(new Date(b.bookingDate), "dd/MM/yyyy"),
+                format(toWIB(new Date(b.bookingDate)), "dd/MM/yyyy"),
                 b.user ? b.user.name : (b.guestName || "Guest"),
                 `${b.vehicle ? b.vehicle.plate : (b.guestPlate || "-")} (${b.vehicle ? b.vehicle.type : (b.guestVehicleType || "-")})`,
                 b.service.name,
@@ -236,10 +242,15 @@ export const getInvoiceHistory = async (req: AuthRequest, res: Response) => {
             orderBy: { createdAt: "desc" }
         });
 
+        const formattedInvoices = invoices.map(inv => ({
+            ...inv,
+            createdAt: toWIB(inv.createdAt)
+        }));
+
         res.status(200).json({
             status: "success",
             message: "Berhasil mengambil riwayat invoice.",
-            data: invoices
+            data: formattedInvoices
         });
     } catch (error) {
         console.error("Error saat mengambil riwayat invoice:", error);

@@ -17,10 +17,20 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
+    const toWIB = (date: Date) => {
+      const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+      return wibTime.toISOString().replace("Z", "+07:00");
+    };
+
+    const formattedNotifications = notifications.map(n => ({
+      ...n,
+      createdAt: toWIB(n.createdAt),
+    }));
+
     res.status(200).json({
       status: "success",
       message: "Berhasil mengambil notifikasi.",
-      data: notifications,
+      data: formattedNotifications,
     });
   } catch (error) {
     console.error("Error saat mengambil notifikasi:", error);

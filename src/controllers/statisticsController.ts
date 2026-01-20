@@ -2,19 +2,22 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import prisma from "../lib/prisma";
 
+const toWIB = (date: Date) => new Date(date.getTime() + 7 * 60 * 60 * 1000);
+
 const formatLocalTime = (date: Date) => {
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const wibDate = toWIB(date);
+    const hours = String(wibDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(wibDate.getUTCMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
 };
 
 const formatLocalDate = (date: Date) => {
-    // Menggunakan Date.UTC agar searah dengan slotController (ISO String)
-    return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+    const wibDate = toWIB(date);
+    return wibDate.toISOString().replace("Z", "+07:00");
 };
 
 const getLocalHour = (date: Date) => {
-    return date.getUTCHours();
+    return toWIB(date).getUTCHours();
 };
 
 export const getSuperadminStatistics = async (req: AuthRequest, res: Response) => {
@@ -36,11 +39,9 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
             });
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+        const today = new Date(`${todayStr}T00:00:00.000+07:00`);
+        const endOfToday = new Date(`${todayStr}T23:59:59.999+07:00`);
 
         // 1. Total Tenant dan Admin
         const totalTenants = await prisma.location.count();
@@ -73,12 +74,12 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
         for (let i = 0; i < 7; i++) {
             const date = new Date(oneWeekAgo);
             date.setDate(oneWeekAgo.getDate() + i);
-            const dayName = dayNames[date.getDay()];
+            const dayName = dayNames[toWIB(date).getUTCDay()];
             revenueByDay[dayName] = 0;
         }
 
         bookingsLastWeek.forEach((booking) => {
-            const dayName = dayNames[booking.bookingDate.getDay()];
+            const dayName = dayNames[toWIB(booking.bookingDate).getUTCDay()];
             revenueByDay[dayName] += booking.totalPrice;
         });
 
@@ -209,11 +210,9 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
         }
 
         const locationId = user.locationId;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date());
+        const today = new Date(`${todayStr}T00:00:00.000+07:00`);
+        const endOfToday = new Date(`${todayStr}T23:59:59.999+07:00`);
 
         // 1. Pendapatan Hari Ini
         const todayBookingsFinished = await prisma.booking.findMany({
@@ -291,12 +290,12 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
         for (let i = 0; i < 7; i++) {
             const date = new Date(oneWeekAgo);
             date.setDate(oneWeekAgo.getDate() + i);
-            const dayName = dayNames[date.getDay()];
+            const dayName = dayNames[toWIB(date).getUTCDay()];
             revenueByDay[dayName] = 0;
         }
 
         bookingsLastWeek.forEach((booking) => {
-            const dayName = dayNames[booking.bookingDate.getDay()];
+            const dayName = dayNames[toWIB(booking.bookingDate).getUTCDay()];
             revenueByDay[dayName] += booking.totalPrice;
         });
 

@@ -154,13 +154,17 @@ async function main() {
   });
   console.log("Vehicles telah dibuat.");
 
-  console.log("Membuat Bookings dengan slot kelipatan 30 menit (08:00-18:00 UTC)...");
+  console.log("Membuat Bookings dengan slot kelipatan 30 menit (08:00-18:00 WIB)...");
 
-  // Helper function untuk membuat booking date di kelipatan 30 menit
-  const createBookingDate = (daysOffset: number, hour: number, minute: number) => {
+  // Helper function untuk membuat booking date dengan jam WIB, disimpan sebagai UTC
+  // Input: jam dalam WIB, Output: Date object dalam UTC
+  const createBookingDateWIB = (daysOffset: number, hourWIB: number, minuteWIB: number) => {
+    // Konversi WIB ke UTC: UTC = WIB - 7 jam
+    const utcHour = hourWIB - 7;
+
     const date = new Date();
     date.setDate(date.getDate() + daysOffset);
-    date.setUTCHours(hour, minute, 0, 0);
+    date.setUTCHours(utcHour, minuteWIB, 0, 0);
     return date;
   };
 
@@ -168,8 +172,8 @@ async function main() {
   const bookings = [];
 
   // === BOOKING KEMARIN (SELESAI) ===
-  // Booking 1: Kemarin jam 08:00 UTC - SELESAI
-  const booking1Date = createBookingDate(-1, 8, 0);
+  // Booking 1: Kemarin jam 08:00 WIB - SELESAI
+  const booking1Date = createBookingDateWIB(-1, 8, 0);
   const booking1 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX001",
@@ -186,8 +190,8 @@ async function main() {
   });
   bookings.push(booking1);
 
-  // Booking 2: Kemarin jam 10:30 UTC - SELESAI
-  const booking2Date = createBookingDate(-1, 10, 30);
+  // Booking 2: Kemarin jam 10:30 WIB - SELESAI
+  const booking2Date = createBookingDateWIB(-1, 10, 30);
   const booking2 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX002",
@@ -204,8 +208,8 @@ async function main() {
   });
   bookings.push(booking2);
 
-  // Booking 3: Kemarin jam 14:00 UTC - SELESAI
-  const booking3Date = createBookingDate(-1, 14, 0);
+  // Booking 3: Kemarin jam 14:00 WIB - SELESAI
+  const booking3Date = createBookingDateWIB(-1, 14, 0);
   const booking3 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX003",
@@ -223,8 +227,8 @@ async function main() {
   bookings.push(booking3);
 
   // === BOOKING HARI INI ===
-  // Booking 4: Hari ini jam 08:30 UTC - SELESAI
-  const booking4Date = createBookingDate(0, 8, 30);
+  // Booking 4: Hari ini jam 08:30 WIB - SELESAI
+  const booking4Date = createBookingDateWIB(0, 8, 30);
   const booking4 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX004",
@@ -241,8 +245,8 @@ async function main() {
   });
   bookings.push(booking4);
 
-  // Booking 5: Hari ini jam 11:00 UTC - SIAP_DIAMBIL
-  const booking5Date = createBookingDate(0, 11, 0);
+  // Booking 5: Hari ini jam 11:00 WIB - SIAP_DIAMBIL
+  const booking5Date = createBookingDateWIB(0, 11, 0);
   const booking5 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX005",
@@ -259,8 +263,8 @@ async function main() {
   });
   bookings.push(booking5);
 
-  // Booking 6: Hari ini jam 13:30 UTC - DICUCI
-  const booking6Date = createBookingDate(0, 13, 30);
+  // Booking 6: Hari ini jam 13:30 WIB - DICUCI
+  const booking6Date = createBookingDateWIB(0, 13, 30);
   const booking6 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX006",
@@ -277,8 +281,8 @@ async function main() {
   });
   bookings.push(booking6);
 
-  // Booking 7: Hari ini jam 15:00 UTC - DITERIMA
-  const booking7Date = createBookingDate(0, 15, 0);
+  // Booking 7: Hari ini jam 15:00 WIB - DITERIMA
+  const booking7Date = createBookingDateWIB(0, 15, 0);
   const booking7 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX007",
@@ -295,8 +299,8 @@ async function main() {
   });
   bookings.push(booking7);
 
-  // Booking 8: Hari ini jam 16:30 UTC - BOOKED
-  const booking8Date = createBookingDate(0, 16, 30);
+  // Booking 8: Hari ini jam 16:30 WIB - BOOKED
+  const booking8Date = createBookingDateWIB(0, 16, 30);
   const booking8 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX008",
@@ -314,8 +318,8 @@ async function main() {
   bookings.push(booking8);
 
   // === BOOKING BESOK ===
-  // Booking 9: Besok jam 09:00 UTC - BOOKED
-  const booking9Date = createBookingDate(1, 9, 0);
+  // Booking 9: Besok jam 09:00 WIB - BOOKED
+  const booking9Date = createBookingDateWIB(1, 9, 0);
   const booking9 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX009",
@@ -332,8 +336,8 @@ async function main() {
   });
   bookings.push(booking9);
 
-  // Booking 10: Besok jam 12:00 UTC - BOOKED
-  const booking10Date = createBookingDate(1, 12, 0);
+  // Booking 10: Besok jam 12:00 WIB - BOOKED
+  const booking10Date = createBookingDateWIB(1, 12, 0);
   const booking10 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX010",
@@ -350,8 +354,8 @@ async function main() {
   });
   bookings.push(booking10);
 
-  // Booking 11: Besok jam 17:30 UTC - BOOKED (slot terakhir)
-  const booking11Date = createBookingDate(1, 17, 30);
+  // Booking 11: Besok jam 17:30 WIB - BOOKED (slot terakhir)
+  const booking11Date = createBookingDateWIB(1, 17, 30);
   const booking11 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX011",
@@ -369,8 +373,8 @@ async function main() {
   bookings.push(booking11);
 
   // === BOOKING LAINNYA (DIBATALKAN & EXPIRED) ===
-  // Booking 12: Kemarin jam 07:00 UTC - DIBATALKAN
-  const booking12Date = createBookingDate(-1, 7, 0);
+  // Booking 12: Kemarin jam 07:00 WIB - DIBATALKAN
+  const booking12Date = createBookingDateWIB(-1, 7, 0);
   const booking12 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX012",
@@ -389,8 +393,8 @@ async function main() {
   });
   bookings.push(booking12);
 
-  // Booking 13: 2 hari lalu - EXPIRED
-  const booking13Date = createBookingDate(-2, 10, 0);
+  // Booking 13: 2 hari lalu jam 10:00 WIB - EXPIRED
+  const booking13Date = createBookingDateWIB(-2, 10, 0);
   const booking13 = await prisma.booking.create({
     data: {
       bookingNumber: "TNX013",
