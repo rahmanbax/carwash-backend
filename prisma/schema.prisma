@@ -54,9 +54,10 @@ model User {
   location   Location? @relation(fields: [locationId], references: [id])
   locationId Int?
 
-  vehicles      Vehicle[]
-  bookings      Booking[]
-  notifications Notification[]
+  vehicles        Vehicle[]
+  bookings        Booking[]
+  notifications   Notification[]
+  managedInvoices Invoice[]      @relation("AdminInvoices")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -152,6 +153,8 @@ model Booking {
   statusHistory BookingStatusHistory[]
 
   notifications Notification[]
+  invoice       Invoice?       @relation(fields: [invoiceId], references: [id])
+  invoiceId     Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,4 +198,15 @@ model Notification {
 enum BookingMethod {
   APP
   MANUAL
+}
+
+model Invoice {
+  id            Int       @id @default(autoincrement())
+  invoiceNumber String    @unique
+  totalAmount   Float
+  adminId       Int
+  admin         User      @relation("AdminInvoices", fields: [adminId], references: [id])
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

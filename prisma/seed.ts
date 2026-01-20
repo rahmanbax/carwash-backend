@@ -8,6 +8,7 @@ async function main() {
   await prisma.notification.deleteMany();
   await prisma.bookingStatusHistory.deleteMany();
   await prisma.booking.deleteMany();
+  await prisma.invoice.deleteMany();
   await prisma.vehicle.deleteMany();
   await prisma.user.deleteMany();
   await prisma.service.deleteMany();
@@ -19,11 +20,17 @@ async function main() {
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Notification_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "BookingStatusHistory_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Booking_id_seq" RESTART WITH 1');
+  await prisma.$executeRawUnsafe('ALTER SEQUENCE "Invoice_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Vehicle_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "User_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Service_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Location_id_seq" RESTART WITH 1');
   console.log("Sequences berhasil di-reset.");
+
+  // Helper function untuk membuat timestamp dengan offset menit
+  const addMinutes = (date: Date, minutes: number) => {
+    return new Date(date.getTime() + minutes * 60000);
+  };
 
   console.log("Membuat Services...");
   const cuciCepatMobil = await prisma.service.create({
@@ -361,15 +368,49 @@ async function main() {
   });
   bookings.push(booking11);
 
+  // === BOOKING LAINNYA (DIBATALKAN & EXPIRED) ===
+  // Booking 12: Kemarin jam 07:00 UTC - DIBATALKAN
+  const booking12Date = createBookingDate(-1, 7, 0);
+  const booking12 = await prisma.booking.create({
+    data: {
+      bookingNumber: "TNX012",
+      queueNumber: 1,
+      bookingDate: booking12Date,
+      totalPrice: cuciCepatMobil.price,
+      status: "DIBATALKAN",
+      paymentStatus: "UNPAID",
+      cancellationReason: "Salah pilih tipe layanan",
+      cancelledAt: addMinutes(booking12Date, 30),
+      userId: budi.id,
+      vehicleId: avanza.id,
+      serviceId: cuciCepatMobil.id,
+      locationId: locationCentral.id,
+    },
+  });
+  bookings.push(booking12);
+
+  // Booking 13: 2 hari lalu - EXPIRED
+  const booking13Date = createBookingDate(-2, 10, 0);
+  const booking13 = await prisma.booking.create({
+    data: {
+      bookingNumber: "TNX013",
+      queueNumber: 1,
+      bookingDate: booking13Date,
+      totalPrice: cuciMotor.price,
+      status: "EXPIRED",
+      paymentStatus: "UNPAID",
+      userId: budi.id,
+      vehicleId: vario.id,
+      serviceId: cuciMotor.id,
+      locationId: locationCentral.id,
+    },
+  });
+  bookings.push(booking13);
+
   console.log(`${bookings.length} Bookings telah dibuat.`);
 
   // === MEMBUAT BOOKING STATUS HISTORY ===
   console.log("Membuat Booking Status History...");
-
-  // Helper function untuk membuat timestamp dengan offset menit
-  const addMinutes = (date: Date, minutes: number) => {
-    return new Date(date.getTime() + minutes * 60000);
-  };
 
   // Booking 1 (Kemarin, SELESAI) - Full progression
   await prisma.bookingStatusHistory.createMany({
@@ -480,6 +521,22 @@ async function main() {
       notes: "Pesanan berhasil dibuat",
       createdAt: booking11Date,
     },
+  });
+
+  // Booking 12 (DIBATALKAN)
+  await prisma.bookingStatusHistory.createMany({
+    data: [
+      { bookingId: booking12.id, status: "BOOKED", notes: "Pesanan berhasil dibuat", createdAt: booking12Date },
+      { bookingId: booking12.id, status: "DIBATALKAN", notes: "Salah pilih tipe layanan", createdAt: addMinutes(booking12Date, 30) },
+    ],
+  });
+
+  // Booking 13 (EXPIRED)
+  await prisma.bookingStatusHistory.createMany({
+    data: [
+      { bookingId: booking13.id, status: "BOOKED", notes: "Pesanan berhasil dibuat", createdAt: booking13Date },
+      { bookingId: booking13.id, status: "EXPIRED", notes: "Slot waktu terlewati tanpa kedatangan", createdAt: addMinutes(booking13Date, 60) },
+    ],
   });
 
   console.log("Booking Status History telah dibuat.");
