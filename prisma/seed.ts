@@ -70,6 +70,7 @@ async function main() {
       phone: "-",
       latitude: -6.9696,
       longitude: 107.6290,
+      isActive: true,
       photoUrl: "https://images.unsplash.com/photo-1605164599901-f8a1464a2c87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
   });
