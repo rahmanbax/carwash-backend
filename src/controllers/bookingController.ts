@@ -83,6 +83,16 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         .json({ status: "error", message: "ID layanan tidak valid." });
     }
 
+    const location = await prisma.location.findFirst({
+      where: { id: locationId },
+    });
+    if (!location || !location.isActive) {
+      return res.status(400).json({
+        status: "error",
+        message: "Lokasi tidak aktif atau tidak ditemukan.",
+      });
+    }
+
     // Pengecekan apakah user sudah memiliki booking aktif di waktu yang sama
     const existingUserBooking = await prisma.booking.findFirst({
       where: {

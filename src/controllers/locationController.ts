@@ -13,6 +13,10 @@ export const getAllLocations = async (req: Request, res: Response) => {
                 latitude: true,
                 longitude: true,
                 photoUrl: true,
+                isActive: true,
+            },
+            where: {
+                isActive: true
             },
             orderBy: {
                 name: 'asc',
@@ -53,6 +57,7 @@ export const getLocationById = async (req: Request, res: Response) => {
                 latitude: true,
                 longitude: true,
                 photoUrl: true,
+                isActive: true,
             }
         });
 
@@ -74,8 +79,6 @@ export const getLocationById = async (req: Request, res: Response) => {
     }
 };
 
-// --- SUPERADMIN ONLY FUNCTIONS ---
-
 export const getSuperadminLocations = async (req: AuthRequest, res: Response) => {
     try {
         const userRole = req.user?.role;
@@ -88,6 +91,9 @@ export const getSuperadminLocations = async (req: AuthRequest, res: Response) =>
         }
 
         const totalLocation = await prisma.location.count();
+        const totalActiveLocation = await prisma.location.count({
+            where: { isActive: true }
+        });
         const totalAdmin = await prisma.user.count({
             where: { role: 'ADMIN' }
         });
@@ -128,6 +134,10 @@ export const getSuperadminLocations = async (req: AuthRequest, res: Response) =>
             name: loc.name,
             address: loc.address,
             phone: loc.phone,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            isActive: loc.isActive,
+            photoUrl: loc.photoUrl,
             totalAdmin: loc._count.users
         }));
 
@@ -136,6 +146,7 @@ export const getSuperadminLocations = async (req: AuthRequest, res: Response) =>
             message: "Berhasil mengambil data lokasi untuk superadmin.",
             data: {
                 totalLocation,
+                totalActiveLocation,
                 totalAdmin,
                 totalNewTenantsThisMonth,
                 locations: formattedLocations
@@ -155,8 +166,9 @@ export const createLocation = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ status: "error", message: "Akses ditolak." });
         }
 
-        const { name, address, phone, latitude, longitude, photoUrl } = req.body;
+        let { name, address, phone, latitude, longitude, photoUrl } = req.body;
 
+        // Validasi input wajib
         if (!name || !address || latitude === undefined || longitude === undefined) {
             return res.status(400).json({
                 status: "error",
@@ -164,13 +176,22 @@ export const createLocation = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        // Konversi tipe data jika dikirim via form-data (string)
+        const lat = typeof latitude === 'string' ? parseFloat(latitude) : latitude;
+        const lng = typeof longitude === 'string' ? parseFloat(longitude) : longitude;
+
+        // Penanganan upload foto
+        if (req.file) {
+            photoUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+        }
+
         const newLocation = await prisma.location.create({
             data: {
                 name,
                 address,
                 phone,
-                latitude,
-                longitude,
+                latitude: lat,
+                longitude: lng,
                 photoUrl
             }
         });
@@ -200,18 +221,36 @@ export const updateLocation = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ status: "error", message: "ID Lokasi tidak valid." });
         }
 
-        const { name, address, phone, latitude, longitude, photoUrl } = req.body;
+        const { name, address, phone, latitude, longitude, photoUrl, isActive } = req.body;
+
+        const updateData: any = {};
+        if (name) updateData.name = name;
+        if (address) updateData.address = address;
+        if (phone) updateData.phone = phone;
+
+        // Konversi dan validasi latitude/longitude
+        if (latitude !== undefined) {
+            updateData.latitude = typeof latitude === 'string' ? parseFloat(latitude) : latitude;
+        }
+        if (longitude !== undefined) {
+            updateData.longitude = typeof longitude === 'string' ? parseFloat(longitude) : longitude;
+        }
+
+        // Penanganan upload foto baru
+        if (req.file) {
+            updateData.photoUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+        } else if (photoUrl !== undefined) {
+            updateData.photoUrl = photoUrl;
+        }
+
+        // Penanganan isActive (mungkin string "true"/"false" dari form-data)
+        if (isActive !== undefined) {
+            updateData.isActive = isActive === 'true' || isActive === true;
+        }
 
         const updatedLocation = await prisma.location.update({
             where: { id: locationId },
-            data: {
-                name,
-                address,
-                phone,
-                latitude,
-                longitude,
-                photoUrl
-            }
+            data: updateData
         });
 
         res.status(200).json({
@@ -237,6 +276,22 @@ export const deleteLocation = async (req: AuthRequest, res: Response) => {
 
         if (isNaN(locationId)) {
             return res.status(400).json({ status: "error", message: "ID Lokasi tidak valid." });
+        }
+
+        // Cari lokasi terlebih dahulu untuk mengecek status isActive
+        const location = await prisma.location.findUnique({
+            where: { id: locationId }
+        });
+
+        if (!location) {
+            return res.status(404).json({ status: "error", message: "Lokasi tidak ditemukan." });
+        }
+
+        if (location.isActive) {
+            return res.status(400).json({
+                status: "error",
+                message: "Lokasi tidak dapat dihapus karena masih aktif. Nonaktifkan terlebih dahulu.",
+            });
         }
 
         await prisma.location.delete({

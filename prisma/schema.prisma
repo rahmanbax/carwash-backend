@@ -103,6 +103,7 @@ model Location {
   longitude Float
 
   photoUrl String?
+  isActive Boolean @default(false)
 
   // Relasi
   bookings Booking[]

@@ -38,6 +38,7 @@ async function main() {
       name: "Cuci Cepat Mobil",
       description: "Cuci bodi eksterior dan pengeringan untuk mobil.",
       price: 50000,
+      vehicleType: "MOBIL",
     },
   });
 
@@ -47,6 +48,7 @@ async function main() {
       description:
         "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil.",
       price: 100000,
+      vehicleType: "MOBIL",
     },
   });
 
@@ -55,6 +57,7 @@ async function main() {
       name: "Paket Cuci Motor",
       description: "Cuci bersih seluruh bagian motor.",
       price: 15000,
+      vehicleType: "MOTOR",
     },
   });
   console.log("Services telah dibuat.");
@@ -107,6 +110,7 @@ async function main() {
       password: allAdminPassword,
       role: "SUPERADMIN",
       phone: "081234567890",
+      photoUrl: "http://localhost:8000/public/tel-u-3d.jpg",
     },
   });
 
@@ -119,6 +123,7 @@ async function main() {
       role: "ADMIN",
       phone: "081234567891",
       locationId: locationCentral.id,
+      photoUrl: "http://localhost:8000/public/tel-u-3d.jpg",
     },
   });
 
@@ -130,6 +135,7 @@ async function main() {
       password: customerPassword,
       role: "CUSTOMER",
       phone: "081112223333",
+      photoUrl: "http://localhost:8000/public/tel-u-3d.jpg",
     },
   });
   console.log("Users telah dibuat.");

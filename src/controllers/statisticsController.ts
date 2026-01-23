@@ -126,8 +126,8 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
                     lte: endOfToday,
                 },
                 status: {
-                    in: ["BOOKED", "DITERIMA", "DICUCI", "SIAP_DIAMBIL"],
-                },
+                    in: ["BOOKED", "DITERIMA"]
+                }
             },
             select: {
                 bookingNumber: true,

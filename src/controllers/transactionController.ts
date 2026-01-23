@@ -96,6 +96,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             const estimateFinish = new Date(bookingTime.getTime() + 30 * 60000); // +30 menit
 
             return {
+                id: booking.id,
                 bookingNumber: booking.bookingNumber,
                 vehiclePlate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
                 vehicleType: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),

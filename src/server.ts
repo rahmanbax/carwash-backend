@@ -67,7 +67,8 @@ app.use('/api/admins', adminRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use("/api/invoices", invoiceRoutes);
 
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+app.use("/public", express.static(path.join(__dirname, "../public")));
+// app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 // web dashboard routes
 
@@ -131,7 +132,7 @@ cron.schedule("*/15 * * * *", async () => {
 
 // Cron untuk otomatis mengubah status Offline (setiap 5 menit)
 cron.schedule("*/5 * * * *", async () => {
-  console.log("Menjalankan cron job untuk pengecekan online user...");
+  console.log(`${new Date().toISOString()} Menjalankan cron job untuk pengecekan online user...`);
   try {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60000);
 

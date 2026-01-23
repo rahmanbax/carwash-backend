@@ -26,7 +26,7 @@ const router = Router();
  *           type: string
  *           format: date
  *         description: "Filter transaksi berdasarkan tanggal (YYYY-MM-DD). Jika kosong, menampilkan data hari ini."
- *         example: "2026-01-20"
+ *         example: "DYNAMIC_CURRENT_DATE"
  *     description: Endpoint ini menampilkan daftar transaksi lengkap. Untuk ADMIN, hanya akan tampil transaksi di lokasi yang dikelolanya.
  *     responses:
  *       '200':

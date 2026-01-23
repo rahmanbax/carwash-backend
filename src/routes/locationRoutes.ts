@@ -8,6 +8,7 @@ import {
     deleteLocation
 } from '../controllers/locationController';
 import { authMiddleware } from '../middleware/authMiddleware';
+import { upload, validateFileSignature } from "../middleware/uploadMiddleware";
 
 const router = Router();
 
@@ -64,6 +65,9 @@ const router = Router();
  *                       photoUrl:
  *                         type: string
  *                         example: "http://localhost:8000/uploads/location-1.jpg"
+ *                       isActive:
+ *                         type: boolean
+ *                         example: true
  *   post:
  *     summary: Membuat lokasi baru (Hanya SUPERADMIN)
  *     tags: [Locations]
@@ -72,7 +76,7 @@ const router = Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required: [name, address, latitude, longitude]
@@ -92,9 +96,10 @@ const router = Router();
  *               longitude:
  *                 type: number
  *                 example: 106.902
- *               photoUrl:
+ *               photo:
  *                 type: string
- *                 example: "https://example.com/photo.jpg"
+ *                 format: binary
+ *                 description: File gambar lokasi (jpg, jpeg, png)
  *     responses:
  *       '201':
  *         description: Lokasi berhasil dibuat.
@@ -133,11 +138,14 @@ const router = Router();
  *                     photoUrl:
  *                       type: string
  *                       example: "https://example.com/photo.jpg"
+ *                     isActive:
+ *                       type: boolean
+ *                       example: false
  *       '403':
  *         description: Akses ditolak.
  */
 router.get('/', getAllLocations);
-router.post('/', authMiddleware, createLocation);
+router.post('/', authMiddleware, upload.single('photo'), validateFileSignature, createLocation);
 
 /**
  * @swagger
@@ -167,6 +175,9 @@ router.post('/', authMiddleware, createLocation);
  *                     totalLocation:
  *                       type: integer
  *                       example: 5
+ *                     totalActiveLocation:
+ *                       type: integer
+ *                       example: 3
  *                     totalAdmin:
  *                       type: integer
  *                       example: 10
@@ -188,6 +199,15 @@ router.post('/', authMiddleware, createLocation);
  *                             type: string
  *                           phone:
  *                             type: string
+ *                           latitude:
+ *                             type: number
+ *                             example: -6.1944
+ *                           longitude:
+ *                             type: number
+ *                             example: 106.8229
+ *                           isActive:
+ *                             type: boolean
+ *                             example: true
  *                           totalAdmin:
  *                             type: integer
  *                             example: 2
@@ -247,6 +267,9 @@ router.get('/superadmin', authMiddleware, getSuperadminLocations);
  *                     photoUrl:
  *                       type: string
  *                       example: "http://localhost:8000/uploads/location-1.jpg"
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
  *   put:
  *     summary: Memperbarui lokasi (Hanya SUPERADMIN)
  *     tags: [Locations]
@@ -259,8 +282,9 @@ router.get('/superadmin', authMiddleware, getSuperadminLocations);
  *         schema:
  *           type: integer
  *     requestBody:
+ *       description: "Data lokasi yang ingin diperbarui. Gunakan multipart/form-data jika ingin mengunggah foto."
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -279,9 +303,13 @@ router.get('/superadmin', authMiddleware, getSuperadminLocations);
  *               longitude:
  *                 type: number
  *                 example: 106.8229
- *               photoUrl:
+ *               photo:
  *                 type: string
- *                 example: "http://localhost:8000/uploads/location-new.jpg"
+ *                 format: binary
+ *                 description: File gambar lokasi baru
+ *               isActive:
+ *                 type: boolean
+ *                 example: true
  *     responses:
  *       '200':
  *         description: Lokasi berhasil diperbarui.
@@ -315,6 +343,9 @@ router.get('/superadmin', authMiddleware, getSuperadminLocations);
  *                       type: number
  *                     photoUrl:
  *                       type: string
+ *                     isActive:
+ *                       type: boolean
+ *                       example: true
  *       '403':
  *         description: Akses ditolak.
  *   delete:
@@ -346,7 +377,7 @@ router.get('/superadmin', authMiddleware, getSuperadminLocations);
  *         description: Akses ditolak.
  */
 router.get('/:id', getLocationById);
-router.put('/:id', authMiddleware, updateLocation);
+router.put('/:id', authMiddleware, upload.single('photo'), validateFileSignature, updateLocation);
 router.delete('/:id', authMiddleware, deleteLocation);
 
 export default router;
