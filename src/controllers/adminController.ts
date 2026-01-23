@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import * as bcrypt from "bcrypt";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { Prisma } from "@prisma/client";
 
 /**
  * Mendapatkan daftar semua Admin
@@ -335,6 +336,91 @@ export const getAdminById = async (req: AuthRequest, res: Response) => {
         });
     } catch (error) {
         console.error("Error saat mengambil detail admin:", error);
+        res.status(500).json({ status: "error", message: "Terjadi kesalahan pada server." });
+    }
+};
+
+/**
+ * Memperbarui profil Admin yang sedang login
+ * Digunakan oleh ADMIN untuk mengupdate data pribadinya
+ */
+export const updateAdminProfile = async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+        return res
+            .status(401)
+            .json({ status: "error", message: "User tidak terautentikasi." });
+    }
+
+    try {
+        const { username, name, email, phone } = req.body;
+
+        // Buat objek update secara dinamis
+        const updateData: Prisma.UserUpdateInput = {};
+
+        if (username) updateData.username = username;
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (phone) updateData.phone = phone;
+
+        // Penanganan khusus untuk file foto profil
+        if (req.file) {
+            const photoUrl = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
+            updateData.photoUrl = photoUrl;
+        }
+
+        // Cek apakah ada data yang akan di-update
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                status: "error",
+                message: "Tidak ada data yang dikirim untuk diperbarui.",
+            });
+        }
+
+        // Lakukan update di database
+        const updatedAdmin = await prisma.user.update({
+            where: { id: userId },
+            data: updateData,
+            include: {
+                location: true,
+            }
+        });
+
+        // Hapus password dari objek respons untuk keamanan
+        const { password, ...adminWithoutPassword } = updatedAdmin;
+
+        res.status(200).json({
+            status: "success",
+            message: "Profil admin berhasil diperbarui.",
+            data: {
+                id: adminWithoutPassword.id,
+                name: adminWithoutPassword.name,
+                username: adminWithoutPassword.username,
+                email: adminWithoutPassword.email,
+                phone: adminWithoutPassword.phone,
+                photoUrl: adminWithoutPassword.photoUrl,
+                role: adminWithoutPassword.role,
+                location: updatedAdmin.location?.name,
+                isActive: adminWithoutPassword.isActive,
+                createdAt: adminWithoutPassword.createdAt,
+                updatedAt: adminWithoutPassword.updatedAt,
+            },
+        });
+    } catch (error) {
+        // Menangani error jika username/email/phone sudah ada (unique constraint)
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
+            const field = (error.meta?.target as string[])[0];
+            return res.status(409).json({
+                status: "error",
+                message: `Data untuk '${field}' sudah digunakan.`,
+            });
+        }
+
+        console.error("Error saat update profil admin:", error);
         res.status(500).json({ status: "error", message: "Terjadi kesalahan pada server." });
     }
 };

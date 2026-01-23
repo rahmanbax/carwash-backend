@@ -182,7 +182,7 @@ export const createLocation = async (req: AuthRequest, res: Response) => {
 
         // Penanganan upload foto
         if (req.file) {
-            photoUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+            photoUrl = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
         }
 
         const newLocation = await prisma.location.create({
@@ -238,7 +238,7 @@ export const updateLocation = async (req: AuthRequest, res: Response) => {
 
         // Penanganan upload foto baru
         if (req.file) {
-            updateData.photoUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+            updateData.photoUrl = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
         } else if (photoUrl !== undefined) {
             updateData.photoUrl = photoUrl;
         }

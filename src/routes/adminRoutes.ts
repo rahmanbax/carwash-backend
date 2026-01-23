@@ -5,8 +5,10 @@ import {
     createAdmin,
     updateAdmin,
     deleteAdmin,
+    updateAdminProfile,
 } from "../controllers/adminController";
 import { authMiddleware } from "../middleware/authMiddleware";
+import { upload, validateFileSignature } from "../middleware/uploadMiddleware";
 
 const router = Router();
 
@@ -329,9 +331,122 @@ const router = Router();
  *                   type: string
  *                   example: Admin berhasil dihapus.
  */
+/**
+ * @swagger
+ * /api/admins/profile:
+ *   put:
+ *     summary: Memperbarui profil Admin yang sedang login
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Ahmad Fauzi"
+ *               username:
+ *                 type: string
+ *                 example: "ahmad_admin"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "ahmad.fauzi@carwash.id"
+ *               phone:
+ *                 type: string
+ *                 example: "081298765432"
+ *               profilePhoto:
+ *                 type: string
+ *                 format: binary
+ *                 description: File gambar profil baru (jpg, jpeg, png).
+ *     responses:
+ *       '200':
+ *         description: Profil admin berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Profil admin berhasil diperbarui.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 5
+ *                     name:
+ *                       type: string
+ *                       example: "Ahmad Fauzi"
+ *                     username:
+ *                       type: string
+ *                       example: "ahmad_admin"
+ *                     email:
+ *                       type: string
+ *                       example: "ahmad.fauzi@carwash.id"
+ *                     phone:
+ *                       type: string
+ *                       example: "081298765432"
+ *                     photoUrl:
+ *                       type: string
+ *                       example: "http://localhost:3000/uploads/profile-1706000000000.jpg"
+ *                     role:
+ *                       type: string
+ *                       example: "ADMIN"
+ *                     location:
+ *                       type: string
+ *                       example: "Cuci Mobil Pondok Indah"
+ *       '400':
+ *         description: Tidak ada data yang dikirim atau input tidak valid.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Tidak ada data yang dikirim untuk diperbarui."
+ *       '401':
+ *         description: Token tidak valid atau user tidak ditemukan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "User tidak terautentikasi."
+ *       '409':
+ *         description: Username/Email/Phone sudah digunakan oleh user lain.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: "Data untuk 'email' sudah digunakan."
+ */
 router.get("/", authMiddleware, getAllAdmins);
 router.get("/:id", authMiddleware, getAdminById);
 router.post("/", authMiddleware, createAdmin);
+router.put("/profile", authMiddleware, upload.single("profilePhoto"), validateFileSignature, updateAdminProfile);
 router.put("/:id", authMiddleware, updateAdmin);
 router.delete("/:id", authMiddleware, deleteAdmin);
 

@@ -83,9 +83,8 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
 
     // 4. Penanganan khusus untuk file foto profil
     if (req.file) {
-      const photoUrl = `${req.protocol}://${req.get("host")}/uploads/${
-        req.file.filename
-      }`;
+      const photoUrl = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename
+        }`;
       updateData.photoUrl = photoUrl;
     }
 
