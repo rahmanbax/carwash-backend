@@ -21,7 +21,6 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger";
 
 const app = express();
-app.use(express.json());
 
 const corsOptions = {
   origin: [
@@ -35,6 +34,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(express.json());
 
 app.get("/", (req: Request, res: Response) => {
   res.send("TelU Carwash Backend is running!");
