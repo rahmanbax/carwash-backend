@@ -26,7 +26,7 @@ app.use(express.json());
 const corsOptions = {
   origin: [
     'http://localhost:3000', // Development
-    // 'https://your-production-domain.com', // Production
+    'https://telucarwash.vercel.app', // Production
   ],
   credentials: true,
   optionsSuccessStatus: 200,
