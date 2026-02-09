@@ -49,6 +49,7 @@ model User {
   photoUrl  String?
   isActive  Boolean   @default(false)
   lastLogin DateTime?
+  fcmToken  String? // Firebase Cloud Messaging token untuk push notifications
 
   // Relasi
   location   Location? @relation(fields: [locationId], references: [id])

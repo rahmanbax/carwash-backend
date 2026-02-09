@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getMyNotifications,
   markNotificationAsRead,
+  registerFcmToken,
 } from "../controllers/notificationController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -104,5 +105,46 @@ router.get("/", authMiddleware, getMyNotifications);
  *         description: Notifikasi tidak ditemukan atau bukan milik user.
  */
 router.patch("/:id/read", authMiddleware, markNotificationAsRead);
+
+/**
+ * @swagger
+ * /api/notifications/register-token:
+ *   post:
+ *     summary: Mendaftarkan atau memperbarui FCM token untuk push notifications
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fcmToken]
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 description: Firebase Cloud Messaging token dari perangkat mobile
+ *                 example: "dsfj23kf9sd8f7sd9f8sd7f9sd8f7s..."
+ *     responses:
+ *       '200':
+ *         description: FCM token berhasil disimpan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: FCM token berhasil disimpan.
+ *       '400':
+ *         description: FCM token tidak valid atau tidak dikirim.
+ *       '401':
+ *         description: Tidak terautentikasi.
+ */
+router.post("/register-token", authMiddleware, registerFcmToken);
 
 export default router;

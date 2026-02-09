@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import prisma from "../lib/prisma";
 import { VehicleType } from "@prisma/client";
+import { sendBookingStatusNotification } from "../services/fcmService";
 
 const SLOT_LIMIT = 3;
 const OPENING_HOUR = 8; // 08:00 WIB
@@ -554,6 +555,14 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
                         bookingId: updatedBooking.id,
                     },
                 });
+
+                // Send FCM push notification to user's device
+                await sendBookingStatusNotification(
+                    updatedBooking.userId,
+                    updatedBooking.bookingNumber,
+                    status,
+                    `No. Booking #${updatedBooking.bookingNumber} ${statusMessage}`
+                );
             }
         }
 

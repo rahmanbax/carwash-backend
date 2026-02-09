@@ -76,3 +76,44 @@ export const markNotificationAsRead = async (
     // ...
   }
 };
+
+/**
+ * Register or update FCM token for the authenticated user
+ * Called by mobile app when it receives a new FCM token
+ */
+export const registerFcmToken = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res
+      .status(401)
+      .json({ status: "error", message: "User tidak terautentikasi." });
+  }
+
+  try {
+    const { fcmToken } = req.body;
+
+    if (!fcmToken || typeof fcmToken !== "string") {
+      return res.status(400).json({
+        status: "error",
+        message: "FCM token wajib diisi.",
+      });
+    }
+
+    // Update user's FCM token in database
+    await prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken },
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "FCM token berhasil disimpan.",
+    });
+  } catch (error) {
+    console.error("Error saat menyimpan FCM token:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};
