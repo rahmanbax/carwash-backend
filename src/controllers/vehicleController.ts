@@ -79,6 +79,7 @@ export const getMyVehicles = async (req: AuthRequest, res: Response) => {
     const vehicles = await prisma.vehicle.findMany({
       where: {
         ownerId: userId,
+        isDeleted: false, // Hanya ambil yang belum dihapus (Soft Delete)
       },
       // Urutkan hasilnya agar konsisten, misalnya berdasarkan yang terbaru
       orderBy: {
@@ -118,11 +119,11 @@ export const getVehicleById = async (req: AuthRequest, res: Response) => {
         .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
-    // Cari kendaraan berdasarkan ID dan pastikan milik user yang sedang login
     const vehicle = await prisma.vehicle.findFirst({
       where: {
         id: vehicleId,
-        ownerId: userId, // Kunci otorisasi: hanya tampilkan jika milik user
+        ownerId: userId, // Kunci otorisasi
+        isDeleted: false, // Pastikan belum dihapus
       },
     });
 
@@ -173,7 +174,8 @@ export const updateVehicle = async (req: AuthRequest, res: Response) => {
     const updatedVehicle = await prisma.vehicle.update({
       where: {
         id: vehicleId,
-        ownerId: userId, // <-- Kunci Otorisasi: hanya update jika ownerId cocok
+        ownerId: userId,
+        isDeleted: false, // Hanya bisa update jika belum di-soft-delete
       },
       data: {
         plate,
@@ -232,12 +234,16 @@ export const deleteVehicle = async (req: AuthRequest, res: Response) => {
         .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
-    // Lakukan delete HANYA jika ID kendaraan DAN ID pemiliknya cocok.
-    // Ini adalah langkah keamanan yang sama seperti di fungsi update.
-    await prisma.vehicle.delete({
+    // AWALNYA: prisma.vehicle.delete (Ini akan menghapus data selamanya dan merusak transaksi)
+    // SEKARANG: Soft Delete dengan mengubah isDeleted menjadi true
+    await prisma.vehicle.update({
       where: {
         id: vehicleId,
-        ownerId: userId, // <-- Kunci Otorisasi
+        ownerId: userId,
+        isDeleted: false, // Pastikan kendaraan memang ada dan belum dihapus sebelumnya
+      },
+      data: {
+        isDeleted: true,
       },
     });
 

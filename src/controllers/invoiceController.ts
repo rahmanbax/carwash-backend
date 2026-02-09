@@ -184,22 +184,22 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
         const valueX = 480;
 
         // Upper Divider line
-        doc.moveTo(labelX, footerY - 10)
-            .lineTo(valueX + 65, footerY - 10)
-            .lineWidth(0.5)
-            .stroke('#CCCCCC');
+        // doc.moveTo(labelX, footerY - 10)
+        //     .lineTo(valueX + 65, footerY - 10)
+        //     .lineWidth(0.5)
+        //     .stroke('#CCCCCC');
 
         // Subtotal
-        doc.font("Helvetica").fontSize(10).fillColor("#777777");
-        doc.text("Subtotal:", labelX, footerY, { width: 60 });
-        doc.font("Helvetica").fillColor("#777777");
-        doc.text(`Rp. ${totalAmount.toLocaleString("id-ID")}`, valueX, footerY, { align: 'right', width: 65 });
+        // doc.font("Helvetica").fontSize(10).fillColor("#777777");
+        // doc.text("Subtotal:", labelX, footerY, { width: 60 });
+        // doc.font("Helvetica").fillColor("#777777");
+        // doc.text(`Rp. ${totalAmount.toLocaleString("id-ID")}`, valueX, footerY, { align: 'right', width: 65 });
 
         // Divider line
-        doc.moveTo(labelX, footerY + 15)
-            .lineTo(valueX + 65, footerY + 15)
-            .lineWidth(0.5)
-            .stroke('#CCCCCC');
+        // doc.moveTo(labelX, footerY + 15)
+        //     .lineTo(valueX + 65, footerY + 15)
+        //     .lineWidth(0.5)
+        //     .stroke('#CCCCCC');
 
         // Total
         doc.font("Helvetica-Bold").fontSize(11).fillColor("black");

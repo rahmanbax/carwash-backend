@@ -353,6 +353,15 @@ export const updateAdminProfile = async (req: AuthRequest, res: Response) => {
             .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
+    // Role validation: Only ADMIN and SUPERADMIN can access this function
+    const userRole = req.user?.role;
+    if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
+        return res.status(403).json({
+            status: "error",
+            message: "Akses ditolak. Anda tidak memiliki izin untuk melakukan operasi ini.",
+        });
+    }
+
     try {
         const { username, name, email, phone } = req.body;
 

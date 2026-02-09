@@ -335,7 +335,7 @@ const router = Router();
  * @swagger
  * /api/admins/profile:
  *   put:
- *     summary: Memperbarui profil Admin yang sedang login
+ *     summary: Memperbarui profil Admin yang sedang login (ADMIN & SUPERADMIN)
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []

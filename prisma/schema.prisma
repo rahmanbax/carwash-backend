@@ -76,6 +76,7 @@ model Vehicle {
   // Relasi
   bookings Booking[]
 
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

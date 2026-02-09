@@ -46,14 +46,22 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         message: "Tidak bisa membuat booking di masa lalu.",
       });
     }
-    // Validasi jam operasional menggunakan waktu UTC (sama seperti request)
-    const bookingHour = bookingDateTime.getUTCHours();
+    // Validasi jam operasional menggunakan waktu lokal Jakarta (WIB)
+    const bookingHour = parseInt(
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jakarta",
+      }).format(bookingDateTime)
+    );
     const bookingMinutes = bookingDateTime.getUTCMinutes();
 
-    if (bookingHour < OPENING_HOUR || bookingHour >= CLOSING_HOUR) {
+    const isAfterClosing = bookingHour > CLOSING_HOUR || (bookingHour === CLOSING_HOUR && bookingMinutes > 0);
+
+    if (bookingHour < OPENING_HOUR || isAfterClosing) {
       return res.status(400).json({
         status: "error",
-        message: `Jam booking harus antara 08:00 dan 18:00.`,
+        message: `Jam booking harus antara ${OPENING_HOUR}:00 dan ${CLOSING_HOUR}:00 WIB.`,
       });
     }
     if (bookingMinutes !== 0 && bookingMinutes !== 30) {
