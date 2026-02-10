@@ -262,15 +262,18 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
       where: {
         userId: userId,
       },
-      // Urutkan berdasarkan tanggal booking, yang terbaru di atas
-      orderBy: {
-        bookingDate: "desc",
-      },
-      // Sertakan data dari tabel lain yang terhubung
       include: {
         vehicle: true,
         service: true,
       },
+    });
+
+    // Urutkan berdasarkan waktu booking yang paling dekat dengan waktu saat ini
+    const now = new Date();
+    bookings.sort((a, b) => {
+      const diffA = Math.abs(a.bookingDate.getTime() - now.getTime());
+      const diffB = Math.abs(b.bookingDate.getTime() - now.getTime());
+      return diffA - diffB;
     });
 
     const formattedBookings = bookings.map((booking) => {
