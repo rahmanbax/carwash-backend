@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getTransactionList, createTransaction, getTransactionHistory, updateTransactionStatus } from "../controllers/transactionController";
+import { getTransactionList, createTransaction, getTransactionHistory, updateTransactionStatus, getUserByPhone } from "../controllers/transactionController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -312,6 +312,50 @@ router.post("/", authMiddleware, createTransaction);
  *         description: Akses ditolak atau lokasi tidak ditemukan.
  */
 router.get("/history", authMiddleware, getTransactionHistory);
+
+/**
+ * @swagger
+ * /api/transactions/user-by-phone:
+ *   get:
+ *     summary: Mencari user berdasarkan nomor telepon (Hanya ADMIN)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: phone
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nomor telepon user yang ingin dicari.
+ *     description: Endpoint ini digunakan oleh admin untuk mengecek apakah pelanggan sudah terdaftar di sistem. Jika ada, akan mengembalikan username dan daftar kendaraan pelanggan.
+ *     responses:
+ *       '200':
+ *         description: User ditemukan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User ditemukan.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     vehicles:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ */
+router.get("/user-by-phone", authMiddleware, getUserByPhone);
 
 /**
  * @swagger

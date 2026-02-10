@@ -450,6 +450,61 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
     }
 };
 
+
+/**
+ * Mencari user berdasarkan nomor telepon (Untuk membantu Admin saat Walk-in)
+ * Mengembalikan username dan daftar kendaraan yang terdaftar
+ */
+export const getUserByPhone = async (req: AuthRequest, res: Response) => {
+    try {
+        const { phone } = req.query;
+
+        if (!phone) {
+            return res.status(400).json({
+                status: "error",
+                message: "Nomor telepon wajib diisi.",
+            });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { phone: phone as string },
+            select: {
+                username: true,
+                name: true,
+                vehicles: {
+                    where: { isDeleted: false },
+                    select: {
+                        id: true,
+                        plate: true,
+                        type: true,
+                        model: true
+                    }
+                }
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                status: "success",
+                message: "User tidak ditemukan.",
+                data: null
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            message: "User ditemukan.",
+            data: user
+        });
+    } catch (error) {
+        console.error("Error saat mencari user berdasarkan nomor telepon:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Terjadi kesalahan pada server.",
+        });
+    }
+};
+
 /**
  * Memperbarui status transaksi (Booking)
  */
@@ -584,3 +639,4 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
         });
     }
 };
+
