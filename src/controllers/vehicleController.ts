@@ -218,25 +218,36 @@ export const updateVehicle = async (req: AuthRequest, res: Response) => {
 };
 
 export const deleteVehicle = async (req: AuthRequest, res: Response) => {
+  const vehicleIdStr = req.params.id;
+  const userId = req.user?.userId;
+
+  console.log(`[DEBUG_LOG] Memulai fungsi deleteVehicle`);
+  console.log(`[DEBUG_LOG] Request Params ID: ${vehicleIdStr}, UserID dari Token: ${userId}`);
+
   try {
-    const vehicleId = parseInt(req.params.id, 10);
-    const userId = req.user?.userId;
+    const vehicleId = parseInt(vehicleIdStr, 10);
 
     if (isNaN(vehicleId)) {
+      console.warn(`[DEBUG_LOG] Validasi Gagal: ID Kendaraan bukan angka (${vehicleIdStr})`);
       return res
         .status(400)
         .json({ status: "error", message: "ID Kendaraan tidak valid." });
     }
 
     if (!userId) {
+      console.warn(`[DEBUG_LOG] Validasi Gagal: UserID tidak ditemukan di request`);
       return res
         .status(401)
         .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
+    console.log(`[DEBUG_LOG] Menjalankan query database: prisma.vehicle.update (SOFT DELETE)`);
+    console.log(`[DEBUG_LOG] Kondisi WHERE: { id: ${vehicleId}, ownerId: ${userId}, isDeleted: false }`);
+    console.log(`[DEBUG_LOG] Data UPDATE: { isDeleted: true }`);
+
     // AWALNYA: prisma.vehicle.delete (Ini akan menghapus data selamanya dan merusak transaksi)
     // SEKARANG: Soft Delete dengan mengubah isDeleted menjadi true
-    await prisma.vehicle.update({
+    const result = await prisma.vehicle.update({
       where: {
         id: vehicleId,
         ownerId: userId,
@@ -246,6 +257,9 @@ export const deleteVehicle = async (req: AuthRequest, res: Response) => {
         isDeleted: true,
       },
     });
+
+    console.log(`[DEBUG_LOG] Query berhasil dieksekusi.`);
+    console.log(`[DEBUG_LOG] Data setelah update (isDeleted): ${result.isDeleted}`);
 
     // Kirim respons sukses. Standar REST untuk DELETE adalah status 204 (No Content)
     // tapi 200 dengan pesan juga sangat umum dan lebih informatif.
@@ -258,6 +272,8 @@ export const deleteVehicle = async (req: AuthRequest, res: Response) => {
       // Error P2025: Record to delete not found.
       // Terjadi jika vehicleId tidak ada ATAU ownerId tidak cocok.
       if (error.code === "P2025") {
+        console.warn(`[DEBUG_LOG] Error Prisma P2025: Data tidak ditemukan atau kondisi WHERE tidak terpenuhi.`);
+        console.warn(`[DEBUG_LOG] Pastikan ID=${vehicleIdStr} milik UserID=${userId} dan isDeleted masih false.`);
         return res
           .status(404)
           .json({
@@ -267,7 +283,7 @@ export const deleteVehicle = async (req: AuthRequest, res: Response) => {
           });
       }
     }
-    console.error("Error saat menghapus kendaraan:", error);
+    console.error(`[DEBUG_LOG] Terjadi Error Fatal saat penghapusan:`, error);
     res
       .status(500)
       .json({ status: "error", message: "Terjadi kesalahan pada server." });
