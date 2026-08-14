@@ -60,7 +60,7 @@ export const getSuperadminStatistics = async (req: AuthRequest, res: Response) =
                     lte: endOfToday,
                 },
                 status: "SELESAI",
-                paymentStatus: "PAID_CASH",
+                paymentStatus: "PAID",
             },
             select: {
                 bookingDate: true,
@@ -225,7 +225,7 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
                 status: {
                     in: ["SELESAI", "SIAP_DIAMBIL"]
                 },
-                paymentStatus: "PAID_CASH",
+                paymentStatus: "PAID",
             },
             select: {
                 totalPrice: true,
@@ -276,7 +276,7 @@ export const getAdminStatistics = async (req: AuthRequest, res: Response) => {
                 status: {
                     in: ["SELESAI", "SIAP_DIAMBIL"]
                 },
-                paymentStatus: "PAID_CASH",
+                paymentStatus: "PAID",
             },
             select: {
                 bookingDate: true,
