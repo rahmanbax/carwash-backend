@@ -88,6 +88,10 @@ const router = Router();
  *                           bookingMethod:
  *                             type: string
  *                             example: "APP"
+ *                           paymentMethod:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "TUNAI"
  *   post:
  *     summary: Membuat transaksi Walk-in (Hanya ADMIN)
  *     tags: [Transactions]
@@ -123,6 +127,10 @@ const router = Router();
  *               serviceId:
  *                 type: integer
  *                 example: 1
+ *               paymentMethod:
+ *                 type: string
+ *                 description: (Opsional) Metode pembayaran seperti tunai / qris
+ *                 example: "TUNAI"
  *               bookingTime:
  *                 type: string
  *                 format: date-time
@@ -160,6 +168,10 @@ const router = Router();
  *                     status:
  *                       type: string
  *                       example: "BOOKED"
+ *                     paymentMethod:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "TUNAI"
  *                     guestName:
  *                       type: string
  *                       example: "Budi Santoso"
@@ -306,6 +318,10 @@ router.post("/", authMiddleware, createTransaction);
  *                           status:
  *                             type: string
  *                             example: "SELESAI"
+ *                           paymentMethod:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "TUNAI"
  *       '401':
  *         description: Tidak terautentikasi.
  *       '403':
@@ -328,7 +344,8 @@ router.get("/history", authMiddleware, getTransactionHistory);
  *         schema:
  *           type: string
  *         description: Nomor telepon user yang ingin dicari.
- *     description: Endpoint ini digunakan oleh admin untuk mengecek apakah pelanggan sudah terdaftar di sistem. Jika ada, akan mengembalikan username dan daftar kendaraan pelanggan.
+ *         example: "081112223333"
+ *     description: Endpoint ini digunakan oleh admin untuk mengecek apakah pelanggan sudah terdaftar di sistem. Jika ada, akan mengembalikan username, nama, dan daftar kendaraan pelanggan beserta kapasitas CC.
  *     responses:
  *       '200':
  *         description: User ditemukan.
@@ -345,15 +362,69 @@ router.get("/history", authMiddleware, getTransactionHistory);
  *                   example: User ditemukan.
  *                 data:
  *                   type: object
+ *                   nullable: true
  *                   properties:
  *                     username:
  *                       type: string
+ *                       example: "budisantoso"
  *                     name:
  *                       type: string
+ *                       example: "Budi Santoso"
  *                     vehicles:
  *                       type: array
  *                       items:
  *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           plate:
+ *                             type: string
+ *                             example: "B 1234 ABC"
+ *                           type:
+ *                             type: string
+ *                             enum: [MOBIL, MOTOR]
+ *                             example: "MOBIL"
+ *                           model:
+ *                             type: string
+ *                             nullable: true
+ *                             example: "Toyota Avanza"
+ *                           cc:
+ *                             type: integer
+ *                             example: 1500
+ *       '400':
+ *         description: Nomor telepon tidak diisi.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Nomor telepon wajib diisi.
+ *       '401':
+ *         description: Tidak terautentikasi.
+ *       '404':
+ *         description: User tidak ditemukan.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: User tidak ditemukan.
+ *                 data:
+ *                   type: null
+ *                   example: null
+ *       '500':
+ *         description: Terjadi kesalahan pada server.
  */
 router.get("/user-by-phone", authMiddleware, getUserByPhone);
 

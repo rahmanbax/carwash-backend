@@ -109,6 +109,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                 estimateFinish: toWIB(estimateFinish),
                 status: booking.status,
                 bookingMethod: booking.bookingMethod,
+                paymentMethod: booking.paymentMethod || null,
             };
         });
 
@@ -144,7 +145,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { name, phone, plate, vehicleType, serviceId, bookingTime } = req.body;
+        const { name, phone, plate, vehicleType, serviceId, bookingTime, paymentMethod } = req.body;
 
         // 1. Validasi Input
         if (!name || !phone || !plate || !vehicleType || !serviceId) {
@@ -178,6 +179,22 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({
                 status: "error",
                 message: "Layanan tidak ditemukan.",
+            });
+        }
+
+        // Validasi kesesuaian lokasi layanan
+        if (service.locationId !== null && service.locationId !== locationId) {
+            return res.status(400).json({
+                status: "error",
+                message: "Layanan ini tidak tersedia di lokasi Anda.",
+            });
+        }
+
+        // Validasi kesesuaian tipe kendaraan
+        if (service.vehicleType && service.vehicleType !== vehicleType) {
+            return res.status(400).json({
+                status: "error",
+                message: `Layanan ini hanya untuk kendaraan tipe ${service.vehicleType}.`,
             });
         }
 
@@ -267,6 +284,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                     bookingDate: transactionDate,
                     totalPrice: service.price,
                     status: "BOOKED",
+                    paymentMethod: paymentMethod || null,
                     locationId,
                     serviceId,
                     userId: existingUser ? existingUser.id : null,
@@ -427,7 +445,8 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             customerPhone: booking.guestPhone || (booking.user ? booking.user.phone : "-"),
             serviceName: booking.service.name,
             servicePrice: booking.service.price,
-            status: booking.status
+            status: booking.status,
+            paymentMethod: booking.paymentMethod || null,
         }));
 
         res.status(200).json({
@@ -477,7 +496,8 @@ export const getUserByPhone = async (req: AuthRequest, res: Response) => {
                         id: true,
                         plate: true,
                         type: true,
-                        model: true
+                        model: true,
+                        cc: true,
                     }
                 }
             }
@@ -567,9 +587,9 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
         const updatedBooking = await prisma.$transaction(async (tx) => {
             const updateData: any = { status };
 
-            // Jika status diubah menjadi SELESAI, otomatis set paymentStatus menjadi PAID_CASH
+            // Jika status diubah menjadi SELESAI, otomatis set paymentStatus menjadi PAID
             if (status === "SELESAI") {
-                updateData.paymentStatus = "PAID_CASH";
+                updateData.paymentStatus = "PAID";
             }
 
             const booking = await tx.booking.update({
