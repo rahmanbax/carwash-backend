@@ -5,16 +5,24 @@ import { Prisma } from "@prisma/client";
 
 export const addVehicle = async (req: AuthRequest, res: Response) => {
   try {
-    const { plate, type, model } = req.body;
+    const { plate, type, model, cc } = req.body;
 
     // Ambil ID user yang sedang login dari middleware
     const userId = req.user?.userId;
 
     // 1. Validasi Input
-    if (!plate || !type) {
+    if (!plate || !type || cc === undefined || cc === null || cc === "") {
       return res.status(400).json({
         status: "error",
-        message: "Nomor plat dan jenis kendaraan wajib diisi.",
+        message: "Nomor plat, jenis kendaraan, dan CC kendaraan wajib diisi.",
+      });
+    }
+
+    const parsedCc = parseInt(cc, 10);
+    if (isNaN(parsedCc) || parsedCc <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "CC kendaraan harus berupa angka positif.",
       });
     }
 
@@ -30,6 +38,7 @@ export const addVehicle = async (req: AuthRequest, res: Response) => {
         plate,
         type, // Seharusnya 'MOBIL' atau 'MOTOR', sesuai enum Anda
         model,
+        cc: parsedCc,
         // Ini adalah bagian penting yang menghubungkan kendaraan ke user yang sedang login
         owner: {
           connect: {
@@ -153,7 +162,7 @@ export const updateVehicle = async (req: AuthRequest, res: Response) => {
   try {
     // 1. Ambil ID dari URL parameter dan data dari body
     const vehicleId = parseInt(req.params.id, 10);
-    const { plate, type, model } = req.body;
+    const { plate, type, model, cc } = req.body;
     const userId = req.user?.userId;
 
     // Validasi dasar
@@ -169,6 +178,18 @@ export const updateVehicle = async (req: AuthRequest, res: Response) => {
         .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
+    // Validasi CC jika diinputkan
+    let parsedCc: number | undefined = undefined;
+    if (cc !== undefined && cc !== null && cc !== "") {
+      parsedCc = parseInt(cc, 10);
+      if (isNaN(parsedCc) || parsedCc <= 0) {
+        return res.status(400).json({
+          status: "error",
+          message: "CC kendaraan harus berupa angka positif.",
+        });
+      }
+    }
+
     // 2. Lakukan update HANYA jika ID kendaraan DAN ID pemiliknya cocok
     // Ini adalah langkah keamanan krusial untuk mencegah user mengedit kendaraan orang lain.
     const updatedVehicle = await prisma.vehicle.update({
@@ -181,6 +202,7 @@ export const updateVehicle = async (req: AuthRequest, res: Response) => {
         plate,
         type,
         model,
+        ...(parsedCc !== undefined ? { cc: parsedCc } : {}),
       },
     });
 

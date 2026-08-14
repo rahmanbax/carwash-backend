@@ -58,6 +58,9 @@ const router = Router();
  *                         type: string
  *                         nullable: true
  *                         example: "Toyota Avanza"
+ *                       cc:
+ *                         type: integer
+ *                         example: 1500
  *                       ownerId:
  *                         type: integer
  *                         example: 1
@@ -80,7 +83,7 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [plate, type]
+ *             required: [plate, type, cc]
  *             properties:
  *               plate:
  *                 type: string
@@ -92,6 +95,10 @@ const router = Router();
  *               model:
  *                 type: string
  *                 example: "Daihatsu Terios"
+ *               cc:
+ *                 type: integer
+ *                 example: 1500
+ *                 description: "Kapasitas mesin dalam CC"
  *     responses:
  *       '201':
  *         description: Kendaraan berhasil ditambahkan.
@@ -121,6 +128,9 @@ const router = Router();
  *                     model:
  *                       type: string
  *                       example: "Daihatsu Terios"
+ *                     cc:
+ *                       type: integer
+ *                       example: 1500
  *                     ownerId:
  *                       type: integer
  *                       example: 1
@@ -131,12 +141,12 @@ const router = Router();
  *                       type: string
  *                       format: date-time
  *       '400':
- *         description: Input tidak valid (nomor plat atau jenis kendaraan tidak diisi).
+ *         description: Input tidak valid (nomor plat, jenis kendaraan, atau CC kendaraan tidak diisi / tidak valid).
  *       '401':
  *         description: Tidak terautentikasi.
  *       '409':
  *         description: Nomor plat sudah terdaftar.
- */
+ *  */
 router.get("/", authMiddleware, getMyVehicles);
 router.post("/", authMiddleware, addVehicle);
 
@@ -186,6 +196,9 @@ router.post("/", authMiddleware, addVehicle);
  *                       type: string
  *                       nullable: true
  *                       example: "Toyota Avanza"
+ *                     cc:
+ *                       type: integer
+ *                       example: 1500
  *                     ownerId:
  *                       type: integer
  *                       example: 1
@@ -228,6 +241,9 @@ router.post("/", authMiddleware, addVehicle);
  *                 enum: [MOBIL, MOTOR]
  *               model:
  *                 type: string
+ *               cc:
+ *                 type: integer
+ *                 example: 1500
  *     responses:
  *       '200':
  *         description: Kendaraan berhasil diperbarui.
@@ -257,6 +273,9 @@ router.post("/", authMiddleware, addVehicle);
  *                     model:
  *                       type: string
  *                       example: "Toyota Avanza Veloz"
+ *                     cc:
+ *                       type: integer
+ *                       example: 1500
  *                     ownerId:
  *                       type: integer
  *                       example: 1
