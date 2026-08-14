@@ -208,6 +208,14 @@ router.post("/register", registerLimiter, register);
  *                           type: string
  *                           enum: [CUSTOMER, ADMIN, SUPERADMIN]
  *                           example: CUSTOMER
+ *                         photoUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "http://localhost:8000/public/tel-u-3d.jpg"
+ *                         locationId:
+ *                           type: integer
+ *                           nullable: true
+ *                           example: 1
  *       '400':
  *         description: Input tidak valid.
  *         content:
@@ -234,7 +242,7 @@ router.post("/register", registerLimiter, register);
  *                 message:
  *                   type: string
  *                   example: Username atau password salah.
- */
+ *  */
 router.post("/login", loginLimiter, login);
 
 /**
@@ -285,6 +293,14 @@ router.post("/login", loginLimiter, login);
  *                         role:
  *                           type: string
  *                           example: CUSTOMER
+ *                         photoUrl:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "http://localhost:8000/public/tel-u-3d.jpg"
+ *                         locationId:
+ *                           type: integer
+ *                           nullable: true
+ *                           example: 1
  *       '401':
  *         description: Token tidak disediakan.
  *       '403':

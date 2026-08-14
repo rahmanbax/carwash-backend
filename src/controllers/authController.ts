@@ -76,6 +76,7 @@ export const login = async (req: Request, res: Response) => {
           name: user.name,
           role: user.role,
           photoUrl: user.photoUrl,
+          locationId: user.locationId,
         },
       },
     });
@@ -258,6 +259,7 @@ export const refreshToken = async (req: Request, res: Response) => {
             name: user.name,
             role: user.role,
             photoUrl: user.photoUrl,
+            locationId: user.locationId,
           },
         },
       });
