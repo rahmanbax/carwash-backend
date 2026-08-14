@@ -1,0 +1,68 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: carwash-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-carwash_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-carwash_db}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend Application (Development)
+  app:
+    build:
+      context: .
+      target: development
+    container_name: carwash-backend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-carwash_db}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
+      PORT: 8000
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    volumes:
+      # Mount source code for hot-reload
+      - ./src:/app/src:delegated
+      - ./prisma:/app/prisma:delegated
+      - ./public:/app/public:delegated
+      # Mount Firebase credentials
+      - ./src/config/firebase-service-account.json:/app/src/config/firebase-service-account.json:ro
+      # Prevent overwriting node_modules
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Prisma Studio (Optional - for database management)
+  prisma-studio:
+    build:
+      context: .
+      target: development
+    container_name: carwash-prisma-studio
+    command: npx prisma studio --port 5555 --browser none
+    ports:
+      - "5555:5555"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-carwash_db}
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - studio
+
+volumes:
+  postgres_data:
