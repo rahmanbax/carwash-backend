@@ -22,15 +22,25 @@ import swaggerSpec from "./config/swagger";
 
 const app = express();
 
-const corsOptions = {
-  origin: [
-    'http://localhost:3000', // Development
-    'https://telucarwash.vercel.app', // Production
-  ],
+const corsOrigin = process.env.CORS_ORIGIN || "";
+const allowedOrigins = corsOrigin
+  .split(',')
+  .map((url) => url.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Izinkan request tanpa origin (seperti mobile apps, Postman, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} tidak diizinkan oleh CORS`));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 };
 
 app.use(cors(corsOptions));
