@@ -101,6 +101,38 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Validasi kesesuaian lokasi layanan
+    if (service.locationId !== null && service.locationId !== locationId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Layanan ini tidak tersedia di lokasi yang dipilih.",
+      });
+    }
+
+    // Validasi kesesuaian jenis kendaraan dengan layanan jika ada batasan
+    if (service.vehicleType && service.vehicleType !== vehicle.type) {
+      return res.status(400).json({
+        status: "error",
+        message: `Layanan ini hanya untuk kendaraan tipe ${service.vehicleType}.`,
+      });
+    }
+
+    // Validasi kesesuaian CC kendaraan dengan layanan jika ada batasan
+    if (vehicle.cc !== null && vehicle.cc !== undefined) {
+      if (service.minCc !== null && vehicle.cc < service.minCc) {
+        return res.status(400).json({
+          status: "error",
+          message: `Layanan ini khusus untuk kendaraan minimal ${service.minCc} CC.`,
+        });
+      }
+      if (service.maxCc !== null && vehicle.cc > service.maxCc) {
+        return res.status(400).json({
+          status: "error",
+          message: `Layanan ini khusus untuk kendaraan maksimal ${service.maxCc} CC.`,
+        });
+      }
+    }
+
     // Pengecekan apakah user sudah memiliki booking aktif di waktu yang sama
     const existingUserBooking = await prisma.booking.findFirst({
       where: {
