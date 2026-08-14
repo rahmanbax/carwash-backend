@@ -202,7 +202,7 @@ npm run dev
 - **Role**: `CUSTOMER`, `ADMIN`, `SUPERADMIN`
 - **VehicleType**: `MOBIL`, `MOTOR`
 - **BookingStatus**: `BOOKED`, `DITERIMA`, `DICUCI`, `SIAP_DIAMBIL`, `SELESAI`, `DIBATALKAN`, `EXPIRED`
-- **PaymentStatus**: `UNPAID`, `PAID_CASH`
+- **PaymentStatus**: `UNPAID`, `PAID`
 - **NotificationType**: `STATUS_UPDATE`, `REMINDER`
 
 ---

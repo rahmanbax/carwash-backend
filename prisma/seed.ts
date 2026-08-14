@@ -32,36 +32,6 @@ async function main() {
     return new Date(date.getTime() + minutes * 60000);
   };
 
-  console.log("Membuat Services...");
-  const cuciCepatMobil = await prisma.service.create({
-    data: {
-      name: "Cuci Cepat Mobil",
-      description: "Cuci bodi eksterior dan pengeringan untuk mobil.",
-      price: 50000,
-      vehicleType: "MOBIL",
-    },
-  });
-
-  const cuciLengkapMobil = await prisma.service.create({
-    data: {
-      name: "Cuci Lengkap Interior & Eksterior Mobil",
-      description:
-        "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil.",
-      price: 100000,
-      vehicleType: "MOBIL",
-    },
-  });
-
-  const cuciMotor = await prisma.service.create({
-    data: {
-      name: "Paket Cuci Motor",
-      description: "Cuci bersih seluruh bagian motor.",
-      price: 15000,
-      vehicleType: "MOTOR",
-    },
-  });
-  console.log("Services telah dibuat.");
-
   console.log("Membuat Locations...");
   const locationCentral = await prisma.location.create({
     data: {
@@ -74,6 +44,70 @@ async function main() {
       photoUrl: "https://images.unsplash.com/photo-1605164599901-f8a1464a2c87?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
   });
+  console.log("Locations telah dibuat.");
+
+  console.log("Membuat Services...");
+  const cuciCepatMobil = await prisma.service.create({
+    data: {
+      name: "Cuci Cepat Mobil",
+      description: "Cuci bodi eksterior dan pengeringan untuk mobil kecil/sedang.",
+      price: 45000,
+      vehicleType: "MOBIL",
+      minCc: 0,
+      maxCc: 1500,
+      locationId: locationCentral.id,
+    },
+  });
+
+  const cuciCepatMobilBesar = await prisma.service.create({
+    data: {
+      name: "Cuci Cepat Mobil",
+      description: "Cuci bodi eksterior dan pengeringan untuk mobil besar/SUV.",
+      price: 60000,
+      vehicleType: "MOBIL",
+      minCc: 1501,
+      maxCc: null,
+      locationId: locationCentral.id,
+    },
+  });
+
+  const cuciLengkapMobil = await prisma.service.create({
+    data: {
+      name: "Cuci Lengkap Interior & Eksterior Mobil",
+      description:
+        "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil.",
+      price: 100000,
+      vehicleType: "MOBIL",
+      minCc: null,
+      maxCc: null,
+      locationId: locationCentral.id,
+    },
+  });
+
+  const cuciMotor = await prisma.service.create({
+    data: {
+      name: "Paket Cuci Motor",
+      description: "Cuci bersih seluruh bagian motor bebek/matic.",
+      price: 15000,
+      vehicleType: "MOTOR",
+      minCc: 0,
+      maxCc: 150,
+      locationId: locationCentral.id,
+    },
+  });
+
+  const cuciMotorBesar = await prisma.service.create({
+    data: {
+      name: "Paket Cuci Motor",
+      description: "Cuci bersih seluruh bagian motor sport/moge.",
+      price: 25000,
+      vehicleType: "MOTOR",
+      minCc: 151,
+      maxCc: null,
+      locationId: locationCentral.id,
+    },
+  });
+  console.log("Services telah dibuat.");
 
   // const locationSouth = await prisma.location.create({
   //   data: {
@@ -147,6 +181,7 @@ async function main() {
       plate: "B 1234 ABC",
       type: "MOBIL",
       model: "Toyota Avanza",
+      cc: 1500,
       ownerId: budi.id,
     },
   });
@@ -156,6 +191,7 @@ async function main() {
       plate: "B 1234 SAU",
       type: "MOTOR",
       model: "Honda Vario",
+      cc: 150,
       ownerId: budi.id,
     },
   });
@@ -188,7 +224,7 @@ async function main() {
       bookingDate: booking1Date,
       totalPrice: cuciCepatMobil.price,
       status: "SELESAI",
-      paymentStatus: "PAID_CASH",
+      paymentStatus: "PAID",
       userId: budi.id,
       vehicleId: avanza.id,
       serviceId: cuciCepatMobil.id,
@@ -206,7 +242,7 @@ async function main() {
       bookingDate: booking2Date,
       totalPrice: cuciLengkapMobil.price,
       status: "SELESAI",
-      paymentStatus: "PAID_CASH",
+      paymentStatus: "PAID",
       userId: budi.id,
       vehicleId: vario.id,
       serviceId: cuciLengkapMobil.id,
@@ -224,7 +260,7 @@ async function main() {
       bookingDate: booking3Date,
       totalPrice: cuciMotor.price,
       status: "SELESAI",
-      paymentStatus: "PAID_CASH",
+      paymentStatus: "PAID",
       userId: budi.id,
       vehicleId: vario.id,
       serviceId: cuciMotor.id,
@@ -243,7 +279,7 @@ async function main() {
       bookingDate: booking4Date,
       totalPrice: cuciCepatMobil.price,
       status: "SELESAI",
-      paymentStatus: "PAID_CASH",
+      paymentStatus: "PAID",
       userId: budi.id,
       vehicleId: avanza.id,
       serviceId: cuciCepatMobil.id,

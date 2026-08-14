@@ -24,7 +24,7 @@ enum BookingStatus {
 
 enum PaymentStatus {
   UNPAID
-  PAID_CASH
+  PAID
 }
 
 enum VehicleType {
@@ -69,6 +69,7 @@ model Vehicle {
   plate String      @unique
   type  VehicleType
   model String?
+  cc    Int
 
   // Relasi
   owner   User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -84,10 +85,16 @@ model Vehicle {
 
 model Service {
   id          Int          @id @default(autoincrement())
-  name        String       @unique
+  name        String
   description String?
   price       Float
   vehicleType VehicleType?
+  minCc       Int?
+  maxCc       Int?
+
+  // Relasi
+  location   Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId Int?
 
   bookings Booking[]
 
@@ -109,6 +116,7 @@ model Location {
 
   // Relasi
   bookings Booking[]
+  services Service[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -128,6 +136,7 @@ model Booking {
   notes       String?
 
   paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod String?
 
   cancellationReason String?
   cancelledAt        DateTime?
