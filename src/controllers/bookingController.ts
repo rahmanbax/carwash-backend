@@ -289,24 +289,44 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    // Ambil SEMUA booking milik user yang sedang login
-    const bookings = await prisma.booking.findMany({
-      where: {
-        userId: userId,
-      },
-      include: {
-        vehicle: true,
-        service: true,
-      },
-    });
+    const { page = "1", limit = "10", status, search } = req.query;
 
-    // Urutkan berdasarkan waktu booking yang paling dekat dengan waktu saat ini
-    const now = new Date();
-    bookings.sort((a, b) => {
-      const diffA = Math.abs(a.bookingDate.getTime() - now.getTime());
-      const diffB = Math.abs(b.bookingDate.getTime() - now.getTime());
-      return diffA - diffB;
-    });
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const whereCondition: any = {
+      userId: userId,
+    };
+
+    if (status) {
+      whereCondition.status = status;
+    }
+
+    if (search) {
+      whereCondition.OR = [
+        { bookingNumber: { contains: search as string, mode: "insensitive" } },
+        { vehicle: { plate: { contains: search as string, mode: "insensitive" } } },
+        { service: { name: { contains: search as string, mode: "insensitive" } } },
+      ];
+    }
+
+    // Ambil booking milik user yang sedang login dengan pagination
+    const [bookings, totalCount] = await Promise.all([
+      prisma.booking.findMany({
+        where: whereCondition,
+        include: {
+          vehicle: true,
+          service: true,
+        },
+        orderBy: {
+          bookingDate: "desc",
+        },
+        skip,
+        take: limitNum,
+      }),
+      prisma.booking.count({ where: whereCondition }),
+    ]);
 
     const formattedBookings = bookings.map((booking) => {
       return {
@@ -328,11 +348,17 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
       };
     });
 
-    // 3. Kirim respons sukses
+    // Kirim respons sukses dengan daftar booking dan pagination
     res.status(200).json({
       status: "success",
       message: "Berhasil mengambil riwayat booking.",
       data: formattedBookings,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
+      },
     });
   } catch (error) {
     console.error("Error saat mengambil riwayat booking:", error);

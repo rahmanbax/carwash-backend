@@ -25,6 +25,29 @@ const router = Router();
  *   get:
  *     summary: Mendapatkan daftar semua lokasi cuci mobil
  *     tags: [Locations]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian nama lokasi atau alamat."
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: "Filter status aktif lokasi (default: true)."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah lokasi per halaman."
  *     responses:
  *       '200':
  *         description: Berhasil mengambil daftar lokasi.
@@ -68,6 +91,21 @@ const router = Router();
  *                       isActive:
  *                         type: boolean
  *                         example: true
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 2
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *   post:
  *     summary: Membuat lokasi baru (Hanya SUPERADMIN)
  *     tags: [Locations]

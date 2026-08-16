@@ -19,6 +19,36 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
             });
         }
 
+        const { page = "1", limit = "10", search, locationId, isActive } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+        const skip = (pageNum - 1) * limitNum;
+
+        const whereCondition: Prisma.UserWhereInput = {
+            role: "ADMIN",
+        };
+
+        if (search) {
+            whereCondition.OR = [
+                { name: { contains: search as string, mode: 'insensitive' } },
+                { username: { contains: search as string, mode: 'insensitive' } },
+                { email: { contains: search as string, mode: 'insensitive' } },
+                { phone: { contains: search as string, mode: 'insensitive' } },
+            ];
+        }
+
+        if (locationId) {
+            const parsedLocationId = parseInt(locationId as string, 10);
+            if (!isNaN(parsedLocationId)) {
+                whereCondition.locationId = parsedLocationId;
+            }
+        }
+
+        if (isActive !== undefined) {
+            whereCondition.isActive = String(isActive).toLowerCase() === "true";
+        }
+
         const totalAdmin = await prisma.user.count({ where: { role: "ADMIN" } });
         const activeAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: true } });
         const inactiveAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: false } });
@@ -42,22 +72,25 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        const admins = await prisma.user.findMany({
-            where: {
-                role: "ADMIN",
-            },
-            include: {
-                location: {
-                    select: {
-                        id: true,
-                        name: true,
+        const [admins, totalFilteredCount] = await Promise.all([
+            prisma.user.findMany({
+                where: whereCondition,
+                include: {
+                    location: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
                     },
                 },
-            },
-            orderBy: {
-                name: "asc",
-            },
-        });
+                orderBy: {
+                    name: "asc",
+                },
+                skip,
+                take: limitNum,
+            }),
+            prisma.user.count({ where: whereCondition }),
+        ]);
 
         const formattedAdmins = admins.map((admin) => ({
             id: admin.id,
@@ -79,7 +112,13 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
                 activeAdmin,
                 inactiveAdmin,
                 loginToday,
-                admins: formattedAdmins
+                admins: formattedAdmins,
+            },
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalFilteredCount / limitNum),
+                totalItems: totalFilteredCount,
+                itemsPerPage: limitNum,
             },
         });
     } catch (error) {

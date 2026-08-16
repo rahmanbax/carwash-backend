@@ -53,6 +53,24 @@ router.post("/", authMiddleware, createInvoice);
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian berdasarkan nomor invoice."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah invoice per halaman."
  *     responses:
  *       200:
  *         description: Daftar riwayat invoice
@@ -74,42 +92,51 @@ router.post("/", authMiddleware, createInvoice);
  *                     properties:
  *                       id:
  *                         type: integer
+ *                         example: 1
  *                       invoiceNumber:
  *                         type: string
+ *                         example: "INV-202601-0001"
  *                       totalAmount:
  *                         type: number
+ *                         example: 250000
  *                       adminId:
  *                         type: integer
+ *                         example: 2
  *                       admin:
  *                         type: object
  *                         properties:
  *                           name:
  *                             type: string
+ *                             example: "Admin"
  *                       _count:
  *                         type: object
  *                         properties:
  *                           bookings:
  *                             type: integer
+ *                             example: 3
  *                       createdAt:
  *                         type: string
  *                         format: date-time
+ *                         example: "2026-01-20T08:00:00.000Z"
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
- *             example:
- *               status: "success"
- *               message: "Berhasil mengambil riwayat invoice."
- *               data:
- *                 - id: 1
- *                   invoiceNumber: "INV-202601-0001"
- *                   totalAmount: 250000
- *                   adminId: 2
- *                   admin:
- *                     name: "Admin"
- *                   _count:
- *                     bookings: 3
- *                   createdAt: "2026-01-20T08:00:00.000Z"
- *                   updatedAt: "2026-01-20T08:00:00.000Z"
+ *                         example: "2026-01-20T08:00:00.000Z"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 5
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       401:
  *         description: Tidak terautentikasi
  */

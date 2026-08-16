@@ -27,6 +27,34 @@ const router = Router();
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian nama, username, email, atau no telepon admin."
+ *       - in: query
+ *         name: locationId
+ *         schema:
+ *           type: integer
+ *         description: "Filter admin berdasarkan ID lokasi."
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *         description: "Filter admin berdasarkan status aktif (true/false)."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah admin per halaman."
  *     responses:
  *       '200':
  *         description: Berhasil mengambil daftar admin.
@@ -89,6 +117,21 @@ const router = Router();
  *                             type: string
  *                             format: date-time
  *                             example: "2026-01-16T21:12:24.000Z"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 10
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *   post:
  *     summary: Membuat Admin baru (Hanya SUPERADMIN)
  *     tags: [Admin]

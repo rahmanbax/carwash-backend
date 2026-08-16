@@ -37,7 +37,11 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { date } = req.query;
+        const { date, page = "1", limit = "10" } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+        const skip = (pageNum - 1) * limitNum;
 
         // Mendapatkan tanggal dalam format YYYY-MM-DD di Asia/Jakarta
         const getJakartaDateStr = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(d);
@@ -60,32 +64,37 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             whereCondition.locationId = admin.locationId;
         }
 
-        const bookings = await prisma.booking.findMany({
-            where: whereCondition,
-            include: {
-                user: {
-                    select: {
-                        name: true,
-                        phone: true,
+        const [bookings, totalCount] = await Promise.all([
+            prisma.booking.findMany({
+                where: whereCondition,
+                include: {
+                    user: {
+                        select: {
+                            name: true,
+                            phone: true,
+                        }
+                    },
+                    vehicle: {
+                        select: {
+                            plate: true,
+                            type: true,
+                        }
+                    },
+                    service: {
+                        select: {
+                            name: true,
+                            price: true,
+                        }
                     }
                 },
-                vehicle: {
-                    select: {
-                        plate: true,
-                        type: true,
-                    }
+                orderBy: {
+                    bookingDate: "desc",
                 },
-                service: {
-                    select: {
-                        name: true,
-                        price: true,
-                    }
-                }
-            },
-            orderBy: {
-                bookingDate: "desc",
-            }
-        });
+                skip,
+                take: limitNum,
+            }),
+            prisma.booking.count({ where: whereCondition }),
+        ]);
 
         const toWIB = (date: Date) => {
             const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
@@ -119,6 +128,12 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             data: {
                 date: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(filterDate),
                 transactions: formattedTransactions,
+            },
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalCount / limitNum),
+                totalItems: totalCount,
+                itemsPerPage: limitNum,
             },
         });
     } catch (error) {
@@ -375,7 +390,11 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             });
         }
 
-        const { startDate, endDate, search } = req.query;
+        const { startDate, endDate, search, page = "1", limit = "10" } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+        const skip = (pageNum - 1) * limitNum;
 
         let startRange: Date;
         let endRange: Date;
@@ -418,17 +437,22 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             whereCondition.locationId = admin.locationId;
         }
 
-        const bookings = await prisma.booking.findMany({
-            where: whereCondition,
-            include: {
-                user: { select: { name: true, phone: true } },
-                vehicle: { select: { plate: true, type: true } },
-                service: { select: { name: true, price: true } }
-            },
-            orderBy: {
-                bookingDate: "desc",
-            }
-        });
+        const [bookings, totalCount] = await Promise.all([
+            prisma.booking.findMany({
+                where: whereCondition,
+                include: {
+                    user: { select: { name: true, phone: true } },
+                    vehicle: { select: { plate: true, type: true } },
+                    service: { select: { name: true, price: true } }
+                },
+                orderBy: {
+                    bookingDate: "desc",
+                },
+                skip,
+                take: limitNum,
+            }),
+            prisma.booking.count({ where: whereCondition }),
+        ]);
 
         const toWIB = (date: Date) => {
             const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
@@ -458,6 +482,12 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
                     end: toWIB(endRange),
                 },
                 transactions: formattedHistory,
+            },
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalCount / limitNum),
+                totalItems: totalCount,
+                itemsPerPage: limitNum,
             },
         });
     } catch (error) {

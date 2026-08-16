@@ -84,23 +84,51 @@ export const getMyVehicles = async (req: AuthRequest, res: Response) => {
         .json({ status: "error", message: "User tidak terautentikasi." });
     }
 
-    // Cari SEMUA kendaraan di database yang 'ownerId'-nya cocok dengan ID user yang sedang login
-    const vehicles = await prisma.vehicle.findMany({
-      where: {
-        ownerId: userId,
-        isDeleted: false, // Hanya ambil yang belum dihapus (Soft Delete)
-      },
-      // Urutkan hasilnya agar konsisten, misalnya berdasarkan yang terbaru
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const { page = "1", limit = "10", type, search } = req.query;
 
-    // Kirim respons sukses dengan daftar kendaraan
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const whereCondition: any = {
+      ownerId: userId,
+      isDeleted: false, // Hanya ambil yang belum dihapus (Soft Delete)
+    };
+
+    if (type) {
+      whereCondition.type = type;
+    }
+
+    if (search) {
+      whereCondition.OR = [
+        { plate: { contains: search as string, mode: "insensitive" } },
+        { model: { contains: search as string, mode: "insensitive" } },
+      ];
+    }
+
+    const [vehicles, totalCount] = await Promise.all([
+      prisma.vehicle.findMany({
+        where: whereCondition,
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: limitNum,
+      }),
+      prisma.vehicle.count({ where: whereCondition }),
+    ]);
+
+    // Kirim respons sukses dengan daftar kendaraan beserta pagination
     res.status(200).json({
       status: "success",
       message: "Berhasil mengambil data kendaraan.",
       data: vehicles,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
+      },
     });
   } catch (error) {
     console.error("Error saat mengambil data kendaraan:", error);

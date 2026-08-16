@@ -25,6 +25,30 @@ const router = Router();
  *     tags: [Vehicles]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [MOBIL, MOTOR]
+ *         description: "Filter berdasarkan tipe kendaraan."
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian plat nomor atau model kendaraan."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah kendaraan per halaman."
  *     responses:
  *       '200':
  *         description: Daftar kendaraan berhasil diambil.
@@ -70,6 +94,21 @@ const router = Router();
  *                       updatedAt:
  *                         type: string
  *                         format: date-time
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 2
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       '401':
  *         description: Tidak terautentikasi.
  *   post:

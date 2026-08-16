@@ -236,12 +236,12 @@ export const getAllReviews = async (req: Request, res: Response) => {
           totalReviews,
           distribution,
         },
-        pagination: {
-          currentPage: pageNum,
-          totalPages: Math.ceil(totalCount / limitNum),
-          totalItems: totalCount,
-          itemsPerPage: limitNum,
-        },
+      },
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
       },
     });
   } catch (error) {

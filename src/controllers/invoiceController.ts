@@ -228,19 +228,37 @@ export const getInvoiceHistory = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ status: "error", message: "User tidak terautentikasi." });
         }
 
+        const { page = "1", limit = "10", search } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+        const skip = (pageNum - 1) * limitNum;
+
         const whereCondition: any = {};
         if (userRole === "ADMIN") {
             whereCondition.adminId = userId;
         }
 
-        const invoices = await prisma.invoice.findMany({
-            where: whereCondition,
-            include: {
-                admin: { select: { name: true } },
-                _count: { select: { bookings: true } }
-            },
-            orderBy: { createdAt: "desc" }
-        });
+        if (search) {
+            whereCondition.invoiceNumber = {
+                contains: search as string,
+                mode: "insensitive",
+            };
+        }
+
+        const [invoices, totalCount] = await Promise.all([
+            prisma.invoice.findMany({
+                where: whereCondition,
+                include: {
+                    admin: { select: { name: true } },
+                    _count: { select: { bookings: true } }
+                },
+                orderBy: { createdAt: "desc" },
+                skip,
+                take: limitNum,
+            }),
+            prisma.invoice.count({ where: whereCondition }),
+        ]);
 
         const formattedInvoices = invoices.map(inv => ({
             ...inv,
@@ -250,7 +268,13 @@ export const getInvoiceHistory = async (req: AuthRequest, res: Response) => {
         res.status(200).json({
             status: "success",
             message: "Berhasil mengambil riwayat invoice.",
-            data: formattedInvoices
+            data: formattedInvoices,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalCount / limitNum),
+                totalItems: totalCount,
+                itemsPerPage: limitNum,
+            },
         });
     } catch (error) {
         console.error("Error saat mengambil riwayat invoice:", error);

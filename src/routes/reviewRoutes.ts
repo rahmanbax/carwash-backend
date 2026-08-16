@@ -156,21 +156,21 @@ const router = Router();
  *                             5:
  *                               type: integer
  *                               example: 16
- *                     pagination:
- *                       type: object
- *                       properties:
- *                         currentPage:
- *                           type: integer
- *                           example: 1
- *                         totalPages:
- *                           type: integer
- *                           example: 3
- *                         totalItems:
- *                           type: integer
- *                           example: 24
- *                         itemsPerPage:
- *                           type: integer
- *                           example: 10
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 24
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       '500':
  *         description: Terjadi kesalahan pada server.
  */

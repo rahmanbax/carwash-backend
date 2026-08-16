@@ -4,29 +4,59 @@ import prisma from "../lib/prisma";
 
 export const getAllLocations = async (req: Request, res: Response) => {
     try {
-        const locations = await prisma.location.findMany({
-            select: {
-                id: true,
-                name: true,
-                address: true,
-                phone: true,
-                latitude: true,
-                longitude: true,
-                photoUrl: true,
-                isActive: true,
-            },
-            where: {
-                isActive: true
-            },
-            orderBy: {
-                name: 'asc',
-            }
-        });
+        const { page = "1", limit = "10", search, isActive } = req.query;
+
+        const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+        const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+        const skip = (pageNum - 1) * limitNum;
+
+        const whereCondition: any = {};
+
+        if (isActive !== undefined) {
+            whereCondition.isActive = String(isActive).toLowerCase() === "true";
+        } else {
+            whereCondition.isActive = true;
+        }
+
+        if (search) {
+            whereCondition.OR = [
+                { name: { contains: search as string, mode: 'insensitive' } },
+                { address: { contains: search as string, mode: 'insensitive' } },
+            ];
+        }
+
+        const [locations, totalCount] = await Promise.all([
+            prisma.location.findMany({
+                select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                    phone: true,
+                    latitude: true,
+                    longitude: true,
+                    photoUrl: true,
+                    isActive: true,
+                },
+                where: whereCondition,
+                orderBy: {
+                    name: 'asc',
+                },
+                skip,
+                take: limitNum,
+            }),
+            prisma.location.count({ where: whereCondition }),
+        ]);
 
         res.status(200).json({
             status: "success",
             message: "Berhasil mengambil data lokasi.",
             data: locations,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(totalCount / limitNum),
+                totalItems: totalCount,
+                itemsPerPage: limitNum,
+            },
         });
 
     } catch (error) {

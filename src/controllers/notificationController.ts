@@ -12,17 +12,39 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: userId },
-      orderBy: { createdAt: "desc" },
-    });
+    const { page = "1", limit = "10", isRead, type } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
+    const skip = (pageNum - 1) * limitNum;
+
+    const whereCondition: any = { userId: userId };
+
+    if (isRead !== undefined) {
+      whereCondition.isRead = String(isRead).toLowerCase() === "true";
+    }
+
+    if (type) {
+      whereCondition.type = type;
+    }
+
+    const [notifications, totalCount, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: whereCondition,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limitNum,
+      }),
+      prisma.notification.count({ where: whereCondition }),
+      prisma.notification.count({ where: { userId, isRead: false } }),
+    ]);
 
     const toWIB = (date: Date) => {
       const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
       return wibTime.toISOString().replace("Z", "+07:00");
     };
 
-    const formattedNotifications = notifications.map(n => ({
+    const formattedNotifications = notifications.map((n) => ({
       ...n,
       createdAt: toWIB(n.createdAt),
     }));
@@ -31,6 +53,13 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
       status: "success",
       message: "Berhasil mengambil notifikasi.",
       data: formattedNotifications,
+      unreadCount,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
+      },
     });
   } catch (error) {
     console.error("Error saat mengambil notifikasi:", error);

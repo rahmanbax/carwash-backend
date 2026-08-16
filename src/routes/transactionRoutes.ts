@@ -27,6 +27,18 @@ const router = Router();
  *           format: date
  *         description: "Filter transaksi berdasarkan tanggal (YYYY-MM-DD). Jika kosong, menampilkan data hari ini."
  *         example: "DYNAMIC_CURRENT_DATE"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah transaksi per halaman."
  *     description: Endpoint ini menampilkan daftar transaksi lengkap. Untuk ADMIN, hanya akan tampil transaksi di lokasi yang dikelolanya.
  *     responses:
  *       '200':
@@ -92,6 +104,21 @@ const router = Router();
  *                             type: string
  *                             nullable: true
  *                             example: "TUNAI"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 25
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *   post:
  *     summary: Membuat transaksi Walk-in (Hanya ADMIN)
  *     tags: [Transactions]
@@ -256,6 +283,18 @@ router.post("/", authMiddleware, createTransaction);
  *         schema:
  *           type: string
  *         description: "Pencarian berdasarkan nomor booking atau plat nomor (case-insensitive)."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah transaksi per halaman."
  *     description: Endpoint ini mengembalikan data transaksi selama 1 bulan berjalan atau berdasarkan range tanggal yang dipilih.
  *     responses:
  *       '200':
@@ -322,6 +361,21 @@ router.post("/", authMiddleware, createTransaction);
  *                             type: string
  *                             nullable: true
  *                             example: "TUNAI"
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 3
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 25
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       '401':
  *         description: Tidak terautentikasi.
  *       '403':

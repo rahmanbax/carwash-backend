@@ -24,6 +24,30 @@ const router = Router();
  *     tags: [Bookings]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [BOOKED, DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI, DIBATALKAN, EXPIRED]
+ *         description: "Filter riwayat booking berdasarkan status."
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian nomor booking, plat nomor, atau nama layanan."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah booking per halaman."
  *     responses:
  *       '200':
  *         description: Berhasil mengambil riwayat booking.
@@ -84,6 +108,21 @@ const router = Router();
  *                       totalPembayaran:
  *                         type: number
  *                         example: 100000
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 5
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       '401':
  *         description: Tidak terautentikasi.
  *   post:

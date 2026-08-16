@@ -23,6 +23,30 @@ const router = Router();
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: isRead
+ *         schema:
+ *           type: boolean
+ *         description: "Filter berdasarkan status baca (true/false)."
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [STATUS_UPDATE, REMINDER]
+ *         description: "Filter berdasarkan tipe notifikasi."
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: "Nomor halaman."
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: "Jumlah notifikasi per halaman."
  *     responses:
  *       '200':
  *         description: Berhasil mengambil daftar notifikasi, diurutkan dari yang terbaru.
@@ -65,6 +89,24 @@ const router = Router();
  *                       createdAt:
  *                         type: string
  *                         format: date-time
+ *                 unreadCount:
+ *                   type: integer
+ *                   example: 2
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                       example: 1
+ *                     totalPages:
+ *                       type: integer
+ *                       example: 1
+ *                     totalItems:
+ *                       type: integer
+ *                       example: 3
+ *                     itemsPerPage:
+ *                       type: integer
+ *                       example: 10
  *       '401':
  *         description: Tidak terautentikasi.
  */
