@@ -1,19 +1,21 @@
 # 🚗 Carwash Backend API
 
-Backend API untuk aplikasi manajemen cuci mobil dengan fitur booking, slot management, dan tracking status kendaraan.
+Backend API untuk aplikasi manajemen cuci mobil dengan fitur booking, slot management, manajemen paket layanan berdasarkan kapasitas mesin (CC) & lokasi, pembayaran, dan tracking status kendaraan.
 
 ---
 
 ## ✨ Fitur Utama
 
-- 🔐 **Authentication & Authorization** - JWT-based auth dengan role (Customer, Admin, Superadmin)
-- 📅 **Booking System** - Sistem booking dengan slot 30 menit (08:00-18:00 WIB)
-- 📍 **Multi-Location** - Support multiple lokasi cuci mobil
-- 🚗 **Vehicle Management** - Manajemen kendaraan customer (Mobil & Motor)
-- 📊 **Status Tracking** - Real-time tracking status booking dengan timeline
-- 🔔 **Notifications** - Sistem notifikasi untuk update status
+- 🔐 **Authentication & Authorization** - JWT-based auth dengan role (`CUSTOMER`, `ADMIN`, `SUPERADMIN`)
+- 📅 **Booking System** - Sistem booking dengan slot 30 menit (08:00 - 18:00 WIB)
+- 📍 **Multi-Location** - Dukungan multi-cabang lokasi cuci mobil
+- 🚗 **Vehicle & CC Management** - Manajemen kendaraan customer dengan kapasitas mesin (CC)
+- 🧼 **Service Packages (CRUD)** - Paket layanan fleksibel berdasarkan tipe kendaraan (`MOBIL`/`MOTOR`), rentang CC, dan lokasi
+- 💳 **Payment & Manual Transaction** - Pencatatan transaksi langsung di tempat (walk-in) dan metode pembayaran (`Tunai`/`QRIS`)
+- 📊 **Statistics Dashboard** - Statistik pendapatan, antrian, dan performa per lokasi maupun global superadmin
+- 🔔 **Notifications & Timeline** - Notifikasi riwayat perubahan status booking
 - 📸 **File Upload** - Upload foto profil user dan lokasi
-- 🎫 **QR Code** - Generate QR code untuk setiap booking
+- 🎫 **QR Code** - Generate QR code otomatis untuk setiap booking
 
 ---
 
@@ -21,28 +23,33 @@ Backend API untuk aplikasi manajemen cuci mobil dengan fitur booking, slot manag
 
 - **Runtime**: Node.js v22+
 - **Framework**: Express.js + TypeScript
-- **Database**: PostgreSQL
+- **Database**: PostgreSQL 16
 - **ORM**: Prisma
-- **Authentication**: JWT (jsonwebtoken)
+- **Containerization**: Docker & Docker Compose
+- **Authentication**: JWT (jsonwebtoken) + bcrypt
 - **File Upload**: Multer
-- **Password Hashing**: bcrypt
-- **API Documentation**: Swagger/OpenAPI
+- **API Documentation**: Swagger / OpenAPI
+- **Notification**: Firebase Admin SDK (FCM)
 - **QR Code**: qrcode
 
 ---
 
 ## 📦 Prasyarat
 
-Pastikan sudah terinstall:
+Pilih salah satu metode yang ingin digunakan:
 
+### Opsi 1: Menggunakan Docker (Direkomendasikan)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (sudah termasuk Docker Compose)
+- [Git](https://git-scm.com/)
+
+### Opsi 2: Menggunakan Node.js Lokal
 - [Node.js](https://nodejs.org/) v22 atau lebih tinggi
 - [PostgreSQL](https://www.postgresql.org/) v14 atau lebih tinggi
 - [Git](https://git-scm.com/)
-- npm atau yarn (sudah include dengan Node.js)
 
 ---
 
-## 🚀 Instalasi untuk Pengguna Baru
+## 🐳 Panduan Setup Cepat dengan Docker (Direkomendasikan)
 
 ### 1️⃣ Clone Repository
 
@@ -51,135 +58,175 @@ git clone <repo-url>
 cd carwash-backend
 ```
 
-### 2️⃣ Install Dependencies
+### 2️⃣ Konfigurasi Environment Variables
+
+Salin atau buat file `.env` di root project:
+
+```env
+# ==========================================
+# Database Configuration (Docker)
+# ==========================================
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=carwash_db
+
+# Digunakan untuk koneksi lokal di luar container jika diperlukan
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/carwash_db?schema=public"
+
+# ==========================================
+# Application Configuration
+# ==========================================
+PORT=8000
+NODE_ENV=development
+JWT_SECRET="your-super-secret-jwt-key-change-this"
+
+# CORS Origin (pisahkan dengan koma jika lebih dari satu)
+CORS_ORIGIN="http://localhost:3000,http://localhost:5173"
+```
+
+> [!NOTE]
+> Pastikan file `src/config/firebase-service-account.json` tersedia (atau gunakan file dummy / valid credentials) karena di-mount ke container backend.
+
+### 3️⃣ Jalankan Container dengan Docker Compose
+
+Jalankan container backend (`carwash-backend`) dan database (`carwash-db`):
+
+```bash
+docker compose up -d --build
+```
+
+Cek apakah semua container sudah berjalan normal:
+
+```bash
+docker compose ps
+```
+
+### 4️⃣ Sinkronisasi Schema Database & Generate Prisma
+
+Jalankan migrasi / push schema database ke dalam container:
+
+```bash
+docker compose exec app npx prisma db push
+```
+
+*(Opsional)* Generate Prisma client jika diperlukan:
+
+```bash
+docker compose exec app npx prisma generate
+```
+
+### 5️⃣ Seed Database dengan Data Awal
+
+Jalankan seeder untuk mengisi data dummy awal:
+
+```bash
+docker compose exec app npx prisma db seed
+```
+
+**Data yang di-seed:**
+- **Users**: 1 Superadmin, 1 Admin (Cabang Central), 1 Customer
+- **Locations**: Central Jakarta, Pondok Indah, Kebon Jeruk
+- **Services**: Paket Cuci Mobil & Motor dengan variasi CC dan lokasi
+- **Vehicles**: Toyota Avanza (1500 CC), Honda Vario (150 CC)
+- **Bookings & History**: Riwayat booking dan timeline status
+- **Notifications**: Notifikasi awal pelanggan
+
+### 6️⃣ Akses Backend & Dokumentasi API
+
+- **API Base URL**: `http://localhost:8000/api`
+- **Swagger Documentation**: `http://localhost:8000/api-docs`
+
+---
+
+## 🛠️ Perintah Docker yang Sering Digunakan
+
+```bash
+# Melihat log aplikasi backend secara real-time
+docker compose logs -f app
+
+# Melihat log database PostgreSQL
+docker compose logs -f db
+
+# Menjalankan Prisma Studio (GUI Database) pada port 5555
+docker compose --profile studio up -d prisma-studio
+
+# Masuk ke shell container backend
+docker compose exec app sh
+
+# Masuk ke CLI PostgreSQL
+docker compose exec db psql -U postgres -d carwash_db
+
+# Menghentikan semua container
+docker compose down
+
+# Menghentikan container dan menghapus volume database (Reset total)
+docker compose down -v
+```
+
+---
+
+## 💻 Panduan Setup Manual (Tanpa Docker)
+
+Jika ingin menjalankan tanpa Docker di mesin lokal:
+
+### 1️⃣ Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3️⃣ Setup Database PostgreSQL
+### 2️⃣ Setup Database PostgreSQL Lokal
 
-Buat database baru di PostgreSQL:
+Buat database di PostgreSQL:
 
 ```sql
 CREATE DATABASE carwash_db;
 ```
 
-### 4️⃣ Konfigurasi Environment Variables
-
-Buat file `.env` di root project:
+Sesuaikan `DATABASE_URL` di file `.env`:
 
 ```env
-# Database Connection
-DATABASE_URL="postgresql://username:password@localhost:5432/carwash_db?schema=public"
-
-# JWT Secret (ganti dengan random string yang aman)
-JWT_SECRET="your-super-secret-jwt-key-change-this"
-
-# Server Port
+DATABASE_URL="postgresql://postgres:password_anda@localhost:5432/carwash_db?schema=public"
 PORT=8000
+JWT_SECRET="your-super-secret-jwt-key-change-this"
 ```
 
-**⚠️ Penting:**
-- Ganti `username` dan `password` dengan kredensial PostgreSQL Anda
-- Ganti `JWT_SECRET` dengan string random yang aman
-
-### 5️⃣ Generate Prisma Client
+### 3️⃣ Setup Prisma & Seed
 
 ```bash
 npx prisma generate
-```
-
-### 6️⃣ Run Database Migrations
-
-```bash
-npx prisma migrate deploy
-```
-
-Atau untuk development dengan reset database:
-
-```bash
-npx prisma migrate reset
-```
-
-### 7️⃣ Seed Database dengan Data Awal
-
-```bash
+npx prisma db push
 npx prisma db seed
 ```
 
-**Data yang di-seed:**
-- 2 Users (1 Superadmin, 1 Customer)
-- 3 Services (Cuci Cepat, Cuci Lengkap, Paket Motor)
-- 3 Locations (Central Jakarta, Pondok Indah, Kebon Jeruk)
-- 2 Vehicles
-- 11 Bookings dengan berbagai status
-- Booking Status History
-- Notifications
-
-### 8️⃣ Jalankan Development Server
+### 4️⃣ Jalankan Server
 
 ```bash
 npm run dev
 ```
 
-Server akan berjalan di `http://localhost:8000`
-
-### 9️⃣ Akses API Documentation
-
-Buka browser dan akses:
-
-```
-http://localhost:8000/api-docs
-```
-
 ---
 
-## 🔄 Panduan Update Project
+## 🔄 Panduan Update Project (Git Pull)
 
-Ikuti langkah-langkah ini saat ada update dari repository:
+Saat ada pembaruan kode dari branch utama:
 
-### 1️⃣ Pull Perubahan Terbaru
+### Jika Menggunakan Docker:
 
 ```bash
 git pull origin main
+docker compose up -d --build
+docker compose exec app npx prisma db push
+docker compose exec app npx prisma db seed   # Jika perlu reset/update seed
 ```
 
-### 2️⃣ Install Dependencies Baru (jika ada)
+### Jika Manual / Lokal:
 
 ```bash
+git pull origin main
 npm install
-```
-
-### 3️⃣ Regenerate Prisma Client
-
-```bash
 npx prisma generate
-```
-
-### 4️⃣ Apply Database Migrations
-
-**Opsi A: Migrate tanpa reset (preserve data)**
-
-```bash
-npx prisma migrate deploy
-```
-
-**Opsi B: Reset database (hapus semua data)**
-
-```bash
-npx prisma migrate reset
-```
-
-### 5️⃣ Seed Database Ulang (jika reset)
-
-```bash
-npx prisma db seed
-```
-
-### 6️⃣ Restart Development Server
-
-```bash
+npx prisma db push
 npm run dev
 ```
 
@@ -188,17 +235,15 @@ npm run dev
 ## 🗄️ Struktur Database
 
 ### Models Utama:
-
-- **User** - Data pengguna (Customer, Admin, Superadmin)
-- **Vehicle** - Kendaraan milik customer
-- **Service** - Paket layanan cuci
-- **Location** - Lokasi cuci mobil
-- **Booking** - Data booking customer
-- **BookingStatusHistory** - Timeline status booking
-- **Notification** - Notifikasi untuk user
+- **User** - Data pengguna (`CUSTOMER`, `ADMIN`, `SUPERADMIN`)
+- **Vehicle** - Kendaraan customer beserta kapasitas mesin (`cc`)
+- **Service** - Paket layanan cuci dengan atribut `minCc`, `maxCc`, `vehicleType`, dan `locationId`
+- **Location** - Data cabang cuci mobil
+- **Booking** - Data pesanan cuci, slot waktu, `paymentStatus`, dan `paymentMethod`
+- **BookingStatusHistory** - Timeline riwayat perubahan status booking
+- **Notification** - Notifikasi sistem untuk pengguna
 
 ### Enums:
-
 - **Role**: `CUSTOMER`, `ADMIN`, `SUPERADMIN`
 - **VehicleType**: `MOBIL`, `MOTOR`
 - **BookingStatus**: `BOOKED`, `DITERIMA`, `DICUCI`, `SIAP_DIAMBIL`, `SELESAI`, `DIBATALKAN`, `EXPIRED`
@@ -207,161 +252,70 @@ npm run dev
 
 ---
 
-## 📚 API Documentation
+## 📚 Ringkasan Endpoint API
 
-### Base URL
+Dokumentasi interaktif dapat diakses di `http://localhost:8000/api-docs`.
 
-```
-http://localhost:8000/api
-```
-
-### Authentication
-
-Semua endpoint yang memerlukan autentikasi harus menyertakan header:
-
-```
-Authorization: Bearer <your-jwt-token>
-```
-
-### Main Endpoints:
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| **Auth** |
-| POST | `/auth/register` | Registrasi customer baru | ❌ |
-| POST | `/auth/login` | Login dan dapatkan JWT token | ❌ |
-| POST | `/auth/refresh` | Refresh JWT token | ✅ |
-| POST | `/auth/logout` | Logout user | ❌ |
-| **Users** |
-| GET | `/users/profile` | Get profil user | ✅ |
-| PUT | `/users/profile` | Update profil user | ✅ |
-| **Vehicles** |
-| GET | `/vehicles` | Get semua kendaraan user | ✅ |
-| GET | `/vehicles/:id` | Get detail kendaraan | ✅ |
-| POST | `/vehicles` | Tambah kendaraan baru | ✅ |
-| PUT | `/vehicles/:id` | Update kendaraan | ✅ |
-| DELETE | `/vehicles/:id` | Hapus kendaraan | ✅ |
-| **Services** |
-| GET | `/services` | Get semua layanan | ❌ |
-| GET | `/services?type=MOBIL` | Filter layanan by type | ❌ |
-| **Locations** |
-| GET | `/locations` | Get semua lokasi | ❌ |
-| GET | `/locations/:id` | Get detail lokasi | ❌ |
-| **Bookings** |
-| GET | `/bookings` | Get riwayat booking user | ✅ |
-| GET | `/bookings/:id` | Get detail booking | ✅ |
-| GET | `/bookings/:id/timeline` | Get timeline status booking | ✅ |
-| POST | `/bookings` | Buat booking baru | ✅ |
-| PATCH | `/bookings/:id/status` | Update status booking | ✅ |
-| **Slots** |
-| GET | `/slots/availability` | Cek ketersediaan slot | ❌ |
-| **Notifications** |
-| GET | `/notifications` | Get notifikasi user | ✅ |
-| PATCH | `/notifications/:id/read` | Tandai notifikasi dibaca | ✅ |
-
-### Swagger Documentation
-
-Dokumentasi lengkap dengan contoh request/response tersedia di:
-
-```
-http://localhost:3000/api-docs
-```
+| Method | Endpoint | Deskripsi | Role / Auth |
+|---|---|---|---|
+| **Auth** | | | |
+| POST | `/api/auth/register` | Registrasi customer baru | Publik |
+| POST | `/api/auth/login` | Login dan peroleh token JWT & `locationId` | Publik |
+| POST | `/api/auth/refresh` | Refresh token JWT | Authenticated |
+| POST | `/api/auth/logout` | Logout | Authenticated |
+| **Services (Layanan)** | | | |
+| GET | `/api/services` | Ambil daftar layanan (filter `type`, `locationId`, `cc`, `vehicleId`) | Publik |
+| GET | `/api/services/:id` | Detail paket layanan | Publik |
+| POST | `/api/services` | Tambah paket layanan baru | `ADMIN`, `SUPERADMIN` |
+| PUT | `/api/services/:id` | Update paket layanan | `ADMIN`, `SUPERADMIN` |
+| DELETE | `/api/services/:id` | Hapus paket layanan | `ADMIN`, `SUPERADMIN` |
+| **Bookings & Transactions** | | | |
+| GET | `/api/bookings` | Riwayat booking user | `CUSTOMER` |
+| POST | `/api/bookings` | Buat booking baru | `CUSTOMER` |
+| GET | `/api/bookings/:id` | Detail booking & timeline | Authenticated |
+| POST | `/api/transactions` | Buat transaksi manual walk-in | `ADMIN` |
+| GET | `/api/transactions/list` | Daftar transaksi aktif di lokasi | `ADMIN` |
+| GET | `/api/transactions/history` | Riwayat transaksi di lokasi | `ADMIN` |
+| GET | `/api/transactions/user-by-phone` | Cari pelanggan via nomor HP | `ADMIN` |
+| PATCH | `/api/transactions/:id/status` | Update status & bayar transaksi | `ADMIN` |
+| **Vehicles** | | | |
+| GET | `/api/vehicles` | Daftar kendaraan user | `CUSTOMER` |
+| POST | `/api/vehicles` | Tambah kendaraan (wajib input `cc`) | `CUSTOMER` |
+| PUT | `/api/vehicles/:id` | Update kendaraan | `CUSTOMER` |
+| DELETE | `/api/vehicles/:id` | Hapus kendaraan (soft delete) | `CUSTOMER` |
+| **Locations** | | | |
+| GET | `/api/locations` | Daftar lokasi aktif | Publik |
+| GET | `/api/locations/:id` | Detail lokasi | Publik |
+| POST | `/api/locations` | Tambah lokasi cabang baru | `SUPERADMIN` |
+| PUT | `/api/locations/:id` | Update lokasi cabang | `SUPERADMIN` |
+| DELETE | `/api/locations/:id` | Hapus lokasi cabang | `SUPERADMIN` |
+| **Statistics** | | | |
+| GET | `/api/statistics/admin` | Statistik dashboard admin per lokasi | `ADMIN` |
+| GET | `/api/statistics/superadmin` | Statistik dashboard global | `SUPERADMIN` |
+| **Slots & Notifications** | | | |
+| GET | `/api/slots/availability` | Cek ketersediaan slot waktu | Publik |
+| GET | `/api/notifications` | Daftar notifikasi user | Authenticated |
+| PATCH | `/api/notifications/:id/read` | Tandai notifikasi telah dibaca | Authenticated |
 
 ---
 
-## 🧪 Testing
+## 👥 Akun Default (Testing)
 
-### Prisma Studio
+Gunakan akun default berikut setelah menjalankan `prisma db seed`:
 
-Untuk melihat dan mengedit data secara visual:
-
-```bash
-npx prisma studio
-```
-
-Akses di `http://localhost:5555`
-
----
-
-## 🔧 Troubleshooting
-
-### Error: "Port 8000 already in use"
-
-Ganti port di `.env`:
-
-```env
-PORT=8001
-```
-
-### Error: "Database connection failed"
-
-1. Pastikan PostgreSQL sudah running
-2. Cek kredensial di `DATABASE_URL` di `.env`
-3. Pastikan database `carwash_db` sudah dibuat
-
-### Error: "Column does not exist"
-
-Schema tidak sinkron dengan database. Jalankan:
-
-```bash
-npx prisma migrate reset
-npx prisma db seed
-```
-
-### Error: "JWT_SECRET not found"
-
-Pastikan file `.env` ada dan berisi `JWT_SECRET`
-
-### Seed Error: "Table does not exist"
-
-Jalankan migrasi terlebih dahulu:
-
-```bash
-npx prisma migrate deploy
-```
-
-### ID tidak reset dari 1 saat seed
-
-Sudah ditangani dengan auto-reset sequence di seed file.
-
----
-
-## 📝 Scripts Available
-
-```bash
-# Development
-npm run dev          # Jalankan server dengan nodemon (auto-reload)
-
-# Build
-npm run build        # Compile TypeScript ke JavaScript
-
-# Production
-npm start            # Jalankan compiled JavaScript
-
-# Database
-npx prisma generate  # Generate Prisma Client
-npx prisma migrate dev --name <name>  # Buat migrasi baru
-npx prisma migrate deploy  # Apply migrasi
-npx prisma migrate reset   # Reset database
-npx prisma db seed   # Seed database
-npx prisma studio    # Buka Prisma Studio
-```
-
----
-
-## 👥 Default Users
-
-Setelah seed, gunakan kredensial berikut untuk testing:
-
-### Superadmin
+### 👑 Superadmin
 - **Username**: `superadmin`
 - **Password**: `supersecret123`
 - **Role**: `SUPERADMIN`
 
-### Customer
+### 🏢 Admin Lokasi (Cabang Central)
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Role**: `ADMIN`
+- **Location ID**: `1` (Central Jakarta)
+
+### 👤 Customer
 - **Username**: `budisantoso`
 - **Password**: `customer123`
+- **Phone**: `081234567890`
 - **Role**: `CUSTOMER`
-
----
-
