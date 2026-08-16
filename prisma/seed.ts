@@ -5,6 +5,7 @@ async function main() {
   console.log("Seeding dimulai...");
 
   console.log("Menghapus data lama...");
+  await prisma.review.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.bookingStatusHistory.deleteMany();
   await prisma.booking.deleteMany();
@@ -17,6 +18,7 @@ async function main() {
 
   // Reset auto-increment sequences
   console.log("Reset auto-increment sequences...");
+  await prisma.$executeRawUnsafe('ALTER SEQUENCE "Review_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Notification_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "BookingStatusHistory_id_seq" RESTART WITH 1');
   await prisma.$executeRawUnsafe('ALTER SEQUENCE "Booking_id_seq" RESTART WITH 1');
@@ -620,6 +622,29 @@ async function main() {
   });
 
   console.log("Notifikasi telah dibuat.");
+  // Buat sample review untuk pesanan yang sudah SELESAI
+  console.log("Membuat Review...");
+  await prisma.review.createMany({
+    data: [
+      {
+        userId: budi.id,
+        bookingId: booking1.id,
+        serviceId: cuciCepatMobil.id,
+        locationId: locationCentral.id,
+        rating: 5,
+        comment: "Pelayanan sangat cepat, bodi mobil bersih dan wangi!",
+      },
+      {
+        userId: budi.id,
+        bookingId: booking4.id,
+        serviceId: cuciCepatMobil.id,
+        locationId: locationCentral.id,
+        rating: 5,
+        comment: "Pengerjaan rapi sekali, petugas ramah.",
+      },
+    ],
+  });
+  console.log("Review telah dibuat.");
   console.log("Seeding selesai.");
 }
 
@@ -631,3 +656,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

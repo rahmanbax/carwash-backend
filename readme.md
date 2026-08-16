@@ -240,6 +240,7 @@ npm run dev
 - **Service** - Paket layanan cuci dengan atribut `minCc`, `maxCc`, `vehicleType`, dan `locationId`
 - **Location** - Data cabang cuci mobil
 - **Booking** - Data pesanan cuci, slot waktu, `paymentStatus`, dan `paymentMethod`
+- **Review** - Ulasan dan rating (1-5) dari customer untuk booking selesai
 - **BookingStatusHistory** - Timeline riwayat perubahan status booking
 - **Notification** - Notifikasi sistem untuk pengguna
 
@@ -263,6 +264,13 @@ Dokumentasi interaktif dapat diakses di `http://localhost:8000/api-docs`.
 | POST | `/api/auth/login` | Login dan peroleh token JWT & `locationId` | Publik |
 | POST | `/api/auth/refresh` | Refresh token JWT | Authenticated |
 | POST | `/api/auth/logout` | Logout | Authenticated |
+| **Reviews (Ulasan)** | | | |
+| GET | `/api/reviews` | Daftar ulasan & statistik rating (filter `serviceId`, `locationId`, `rating`) | Publik |
+| GET | `/api/reviews/:id` | Detail satu ulasan | Publik |
+| GET | `/api/reviews/booking/:bookingId` | Cek ulasan berdasarkan ID Booking | Publik |
+| POST | `/api/reviews` | Buat ulasan baru untuk pesanan `SELESAI` | `CUSTOMER` |
+| PUT | `/api/reviews/:id` | Update ulasan (rating & komentar) | `CUSTOMER` |
+| DELETE | `/api/reviews/:id` | Hapus ulasan | `CUSTOMER`, `SUPERADMIN` |
 | **Services (Layanan)** | | | |
 | GET | `/api/services` | Ambil daftar layanan (filter `type`, `locationId`, `cc`, `vehicleId`) | Publik |
 | GET | `/api/services/:id` | Detail paket layanan | Publik |

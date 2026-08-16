@@ -19,6 +19,7 @@ const options: swaggerJsdoc.Options = {
       { name: 'Users', description: 'Endpoint untuk manajemen profil user' },
       { name: 'Services', description: 'Endpoint untuk daftar layanan' },
       { name: 'Slots', description: 'Endpoint untuk informasi slot/waktu' },
+      { name: 'Reviews', description: 'Endpoint untuk ulasan dan rating layanan oleh customer' },
       { name: 'Notifications', description: 'Endpoint untuk notifikasi' },
     ],
     components: {

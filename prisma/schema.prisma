@@ -57,6 +57,7 @@ model User {
 
   vehicles        Vehicle[]
   bookings        Booking[]
+  reviews         Review[]
   notifications   Notification[]
   managedInvoices Invoice[]      @relation("AdminInvoices")
 
@@ -97,6 +98,7 @@ model Service {
   locationId Int?
 
   bookings Booking[]
+  reviews  Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,6 +119,7 @@ model Location {
   // Relasi
   bookings Booking[]
   services Service[]
+  reviews  Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -167,6 +170,7 @@ model Booking {
   notifications Notification[]
   invoice       Invoice?       @relation(fields: [invoiceId], references: [id])
   invoiceId     Int?
+  review        Review?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -222,3 +226,32 @@ model Invoice {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int // 1 - 5
+  comment   String?
+
+  // Relasi User
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  // Relasi Booking (1 review per 1 booking selesai)
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId Int      @unique
+
+  // Relasi Service & Location
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceId  Int
+
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  locationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([locationId])
+  @@index([userId])
+}
+

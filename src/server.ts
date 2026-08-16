@@ -13,6 +13,7 @@ import statisticsRoutes from './routes/statisticsRoutes';
 import adminRoutes from './routes/adminRoutes';
 import transactionRoutes from './routes/transactionRoutes';
 import invoiceRoutes from './routes/invoiceRoutes';
+import reviewRoutes from './routes/reviewRoutes';
 
 import cron from "node-cron";
 import cors from 'cors';
@@ -76,6 +77,7 @@ app.use('/api/statistics/', statisticsRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use("/api/invoices", invoiceRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.use("/public", express.static(path.join(__dirname, "../public")));
 // app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
