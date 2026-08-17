@@ -126,7 +126,6 @@ export const getAllServices = async (req: Request, res: Response) => {
         vehicleType: true,
         minCc: true,
         maxCc: true,
-        locationId: true,
         location: {
           select: {
             id: true,
@@ -175,7 +174,6 @@ export const getServiceById = async (req: Request, res: Response) => {
         vehicleType: true,
         minCc: true,
         maxCc: true,
-        locationId: true,
         location: {
           select: {
             id: true,

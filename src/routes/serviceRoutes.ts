@@ -101,11 +101,6 @@ const router = Router();
  *                         nullable: true
  *                         example: 1500
  *                         description: Batas maksimum CC kendaraan.
- *                       locationId:
- *                         type: integer
- *                         nullable: true
- *                         example: 1
- *                         description: ID lokasi cabang penyedia layanan (null jika berlaku global).
  *                       location:
  *                         type: object
  *                         nullable: true
@@ -179,10 +174,6 @@ router.get("/", getAllServices);
  *                       type: integer
  *                       nullable: true
  *                       example: 1500
- *                     locationId:
- *                       type: integer
- *                       nullable: true
- *                       example: 1
  *                     location:
  *                       type: object
  *                       nullable: true
