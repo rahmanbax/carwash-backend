@@ -84,6 +84,18 @@ const router = Router();
  *                       nomorAntrian:
  *                         type: integer
  *                         example: 1
+ *                       lokasi:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 1
+ *                           nama:
+ *                             type: string
+ *                             example: "TelU Carwash Bandung"
+ *                           alamat:
+ *                             type: string
+ *                             example: "Jl. Terusan Buah Batu No.1"
  *                       kendaraan:
  *                         type: object
  *                         properties:
@@ -182,6 +194,18 @@ const router = Router();
  *                     nomorAntrian:
  *                       type: integer
  *                       example: 1
+ *                     lokasi:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         nama:
+ *                           type: string
+ *                           example: "TelU Carwash Bandung"
+ *                         alamat:
+ *                           type: string
+ *                           example: "Jl. Terusan Buah Batu No.1"
  *                     kendaraan:
  *                       type: object
  *                       properties:
@@ -269,6 +293,18 @@ router.post("/", authMiddleware, createBooking);
  *                     nomorAntrian:
  *                       type: integer
  *                       example: 1
+ *                     lokasi:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         nama:
+ *                           type: string
+ *                           example: "TelU Carwash Bandung"
+ *                         alamat:
+ *                           type: string
+ *                           example: "Jl. Terusan Buah Batu No.1"
  *                     kendaraan:
  *                       type: object
  *                       properties:
@@ -291,8 +327,8 @@ router.post("/", authMiddleware, createBooking);
  *                           type: string
  *                           example: "Cuci eksterior, vakum interior, dan pembersihan dasbor mobil."
  *                     totalPembayaran:
- *                       type: number
- *                       example: 100000
+ *                         type: number
+ *                         example: 100000
  *                     qrCode:
  *                       type: string
  *                       example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."

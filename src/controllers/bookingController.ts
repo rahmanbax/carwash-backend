@@ -229,6 +229,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       include: {
         vehicle: true, // Sertakan data kendaraan
         service: true, // Sertakan data layanan
+        location: true, // Sertakan data lokasi
       },
     });
 
@@ -245,6 +246,11 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       nomorBooking: bookingDetails.bookingNumber,
       tanggalWaktu: toWIB(bookingDetails.bookingDate),
       nomorAntrian: bookingDetails.queueNumber,
+      lokasi: {
+        id: bookingDetails.location.id,
+        nama: bookingDetails.location.name,
+        alamat: bookingDetails.location.address,
+      },
       kendaraan: {
         platNomor: bookingDetails.vehicle!.plate,
         jenisKendaraan: bookingDetails.vehicle!.type,
@@ -318,6 +324,7 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
         include: {
           vehicle: true,
           service: true,
+          location: true,
         },
         orderBy: {
           bookingDate: "desc",
@@ -335,6 +342,11 @@ export const getMyBookings = async (req: AuthRequest, res: Response) => {
         nomorBooking: booking.bookingNumber,
         tanggalWaktu: toWIB(booking.bookingDate),
         nomorAntrian: booking.queueNumber,
+        lokasi: {
+          id: booking.location.id,
+          nama: booking.location.name,
+          alamat: booking.location.address,
+        },
         kendaraan: {
           platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
           jenisKendaraan: booking.vehicle ? booking.vehicle.type : booking.guestVehicleType,
@@ -393,6 +405,7 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
       include: {
         vehicle: true,
         service: true,
+        location: true,
       },
     });
 
@@ -412,6 +425,11 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
       nomorBooking: booking.bookingNumber,
       tanggalWaktu: toWIB(booking.bookingDate),
       nomorAntrian: booking.queueNumber,
+      lokasi: {
+        id: booking.location.id,
+        nama: booking.location.name,
+        alamat: booking.location.address,
+      },
       kendaraan: {
         platNomor: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
         jenisKendaraan: booking.vehicle ? booking.vehicle.type : booking.guestVehicleType,
