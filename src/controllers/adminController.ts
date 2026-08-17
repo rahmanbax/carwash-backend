@@ -27,6 +27,7 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
 
         const whereCondition: Prisma.UserWhereInput = {
             role: "ADMIN",
+            isDeleted: false,
         };
 
         if (search) {
@@ -49,9 +50,9 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
             whereCondition.isActive = String(isActive).toLowerCase() === "true";
         }
 
-        const totalAdmin = await prisma.user.count({ where: { role: "ADMIN" } });
-        const activeAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: true } });
-        const inactiveAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: false } });
+        const totalAdmin = await prisma.user.count({ where: { role: "ADMIN", isDeleted: false } });
+        const activeAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: true, isDeleted: false } });
+        const inactiveAdmin = await prisma.user.count({ where: { role: "ADMIN", isActive: false, isDeleted: false } });
 
         // Hitung admin yang login hari ini (WIB)
         const formatLocalDate = (date: Date) => {
@@ -65,6 +66,7 @@ export const getAllAdmins = async (req: AuthRequest, res: Response) => {
         const loginToday = await prisma.user.count({
             where: {
                 role: "ADMIN",
+                isDeleted: false,
                 lastLogin: {
                     gte: startOfToday,
                     lte: endOfToday
@@ -288,9 +290,9 @@ export const deleteAdmin = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ status: "error", message: "ID Admin tidak valid." });
         }
 
-        // Pastikan yang dihapus memang role ADMIN
-        const adminToDelete = await prisma.user.findUnique({
-            where: { id: adminId }
+        // Pastikan yang dihapus memang role ADMIN dan belum dihapus
+        const adminToDelete = await prisma.user.findFirst({
+            where: { id: adminId, isDeleted: false }
         });
 
         if (!adminToDelete || adminToDelete.role !== "ADMIN") {
@@ -300,8 +302,13 @@ export const deleteAdmin = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        await prisma.user.delete({
+        // Soft Delete: Ubah isDeleted menjadi true dan nonaktifkan status aktifnya
+        await prisma.user.update({
             where: { id: adminId },
+            data: {
+                isDeleted: true,
+                isActive: false,
+            },
         });
 
         res.status(200).json({
@@ -334,8 +341,8 @@ export const getAdminById = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ status: "error", message: "ID Admin tidak valid." });
         }
 
-        const admin = await prisma.user.findUnique({
-            where: { id: adminId },
+        const admin = await prisma.user.findFirst({
+            where: { id: adminId, isDeleted: false },
             include: {
                 location: {
                     select: {

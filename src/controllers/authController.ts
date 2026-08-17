@@ -23,8 +23,8 @@ export const login = async (req: Request, res: Response) => {
       },
     });
 
-    // Jika user tidak ditemukan, kirim error.
-    if (!user) {
+    // Jika user tidak ditemukan atau telah dihapus, kirim error.
+    if (!user || user.isDeleted) {
       return res
         .status(401)
         .json({ status: "error", message: "Username atau password salah." });

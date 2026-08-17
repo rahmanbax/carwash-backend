@@ -48,6 +48,7 @@ model User {
 
   photoUrl  String?
   isActive  Boolean   @default(false)
+  isDeleted Boolean   @default(false)
   lastLogin DateTime?
   fcmToken  String? // Firebase Cloud Messaging token untuk push notifications
 
