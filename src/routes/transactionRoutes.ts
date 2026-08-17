@@ -74,6 +74,10 @@ const router = Router();
  *                           vehicleType:
  *                             type: string
  *                             example: "mobil"
+ *                           cc:
+ *                             type: integer
+ *                             nullable: true
+ *                             example: 1500
  *                           customerName:
  *                             type: string
  *                             example: "John Doe"
@@ -342,6 +346,10 @@ router.post("/", authMiddleware, createTransaction);
  *                           vehicleType:
  *                             type: string
  *                             example: "MOBIL"
+ *                           cc:
+ *                             type: integer
+ *                             nullable: true
+ *                             example: 1500
  *                           customerName:
  *                             type: string
  *                             example: "John Doe"

@@ -78,6 +78,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                         select: {
                             plate: true,
                             type: true,
+                            cc: true,
                         }
                     },
                     service: {
@@ -110,6 +111,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                 bookingNumber: booking.bookingNumber,
                 vehiclePlate: booking.vehicle ? booking.vehicle.plate : booking.guestPlate,
                 vehicleType: booking.vehicle ? booking.vehicle.type.toLowerCase() : (booking.guestVehicleType?.toLowerCase() || ""),
+                cc: booking.vehicle ? booking.vehicle.cc : null,
                 customerName: booking.guestName || (booking.user ? booking.user.name : "-"),
                 customerPhone: booking.guestPhone || (booking.user ? booking.user.phone : "-"),
                 serviceName: booking.service.name,
@@ -442,7 +444,7 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
                 where: whereCondition,
                 include: {
                     user: { select: { name: true, phone: true } },
-                    vehicle: { select: { plate: true, type: true } },
+                    vehicle: { select: { plate: true, type: true, cc: true } },
                     service: { select: { name: true, price: true } }
                 },
                 orderBy: {
@@ -465,6 +467,7 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             date: toWIB(booking.bookingDate),
             vehiclePlate: booking.vehicle ? booking.vehicle.plate : (booking.guestPlate || "-"),
             vehicleType: booking.vehicle ? booking.vehicle.type : (booking.guestVehicleType || ""),
+            cc: booking.vehicle ? booking.vehicle.cc : null,
             customerName: booking.guestName || (booking.user ? booking.user.name : "-"),
             customerPhone: booking.guestPhone || (booking.user ? booking.user.phone : "-"),
             serviceName: booking.service.name,
