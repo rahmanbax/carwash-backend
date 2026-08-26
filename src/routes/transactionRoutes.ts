@@ -28,6 +28,11 @@ const router = Router();
  *         description: "Filter transaksi berdasarkan tanggal (YYYY-MM-DD). Jika kosong, menampilkan data hari ini."
  *         example: "DYNAMIC_CURRENT_DATE"
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: "Pencarian berdasarkan nomor booking, plat kendaraan, nama customer, atau nomor telepon (case-insensitive)."
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -286,7 +291,7 @@ router.post("/", authMiddleware, createTransaction);
  *         name: search
  *         schema:
  *           type: string
- *         description: "Pencarian berdasarkan nomor booking atau plat nomor (case-insensitive)."
+ *         description: "Pencarian berdasarkan nomor booking, plat nomor, nama customer, dan nomor hp (case-insensitive)."
  *       - in: query
  *         name: page
  *         schema:

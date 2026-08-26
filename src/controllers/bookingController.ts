@@ -534,3 +534,83 @@ export const getBookingTimeline = async (req: Request, res: Response) => {
       .json({ status: "error", message: "Terjadi kesalahan pada server." });
   }
 };
+
+/**
+ * Melacak status booking berdasarkan Nomor Booking (atau ID)
+ * Endpoint publik tanpa perlu login (cocok untuk customer umum / guest)
+ */
+export const trackBooking = async (req: Request, res: Response) => {
+  const identifier = req.params.id;
+
+  if (!identifier) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "Nomor booking wajib diisi." });
+  }
+
+  try {
+    // Cari booking hanya berdasarkan nomor booking (case-insensitive)
+    const booking = await prisma.booking.findFirst({
+      where: {
+        bookingNumber: { equals: identifier, mode: "insensitive" },
+      },
+      select: {
+        id: true,
+        bookingNumber: true,
+        guestPlate: true,
+        vehicle: {
+          select: {
+            plate: true,
+            model: true,
+          },
+        },
+        service: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        status: "error",
+        message: "Booking tidak ditemukan.",
+      });
+    }
+
+    const statusHistory = await prisma.bookingStatusHistory.findMany({
+      where: {
+        bookingId: booking.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    const formattedTimeline = statusHistory.map((history) => ({
+      status: history.status,
+      waktu: toWIB(history.createdAt),
+      catatan: history.notes,
+    }));
+
+    const responseData = {
+      nomorBooking: booking.bookingNumber,
+      namaKendaraan: booking.vehicle ? booking.vehicle.model : "Guest Vehicle",
+      platNomor: booking.vehicle ? booking.vehicle.plate : (booking.guestPlate || ""),
+      layanan: booking.service.name,
+      timeline: formattedTimeline,
+    };
+
+    res.status(200).json({
+      status: "success",
+      message: "Berhasil melacak status booking.",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("Error saat tracking booking:", error);
+    res
+      .status(500)
+      .json({ status: "error", message: "Terjadi kesalahan pada server." });
+  }
+};

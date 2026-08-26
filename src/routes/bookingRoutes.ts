@@ -4,6 +4,7 @@ import {
   getMyBookings,
   getBookingById,
   getBookingTimeline,
+  trackBooking,
 } from "../controllers/bookingController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -400,5 +401,69 @@ router.get("/:id", authMiddleware, getBookingById);
  *         description: Booking tidak ditemukan.
  */
 router.get("/:id/timeline", getBookingTimeline);
+
+/**
+ * @swagger
+ * /api/bookings/{id}/track:
+ *   get:
+ *     summary: Melacak status dan riwayat timeline booking berdasarkan Nomor Booking
+ *     tags: [Bookings]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: "Nomor Booking (contoh: TNX001)."
+ *     responses:
+ *       '200':
+ *         description: Berhasil melacak status booking.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Berhasil melacak status booking.
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     nomorBooking:
+ *                       type: string
+ *                       example: "TNX001"
+ *                     namaKendaraan:
+ *                       type: string
+ *                       example: "Toyota Avanza"
+ *                     platNomor:
+ *                       type: string
+ *                       example: "B 1234 ABC"
+ *                     layanan:
+ *                       type: string
+ *                       example: "Cuci Lengkap Interior & Eksterior Mobil"
+ *                     timeline:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           status:
+ *                             type: string
+ *                             enum: [BOOKED, DITERIMA, DICUCI, SIAP_DIAMBIL, SELESAI]
+ *                             example: BOOKED
+ *                           waktu:
+ *                             type: string
+ *                             format: date-time
+ *                           catatan:
+ *                             type: string
+ *                             example: "Pesanan berhasil dibuat"
+ *       '400':
+ *         description: Nomor booking wajib diisi.
+ *       '404':
+ *         description: Booking tidak ditemukan.
+ */
+router.get("/:id/track", trackBooking);
 
 export default router;

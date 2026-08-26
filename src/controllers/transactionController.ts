@@ -37,7 +37,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { date, page = "1", limit = "10" } = req.query;
+        const { date, search, page = "1", limit = "10" } = req.query;
 
         const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
         const limitNum = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 10));
@@ -59,6 +59,18 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                 lte: endOfDay,
             }
         };
+
+        if (search) {
+            whereCondition.OR = [
+                { bookingNumber: { contains: search as string, mode: 'insensitive' } },
+                { vehicle: { plate: { contains: search as string, mode: 'insensitive' } } },
+                { guestPlate: { contains: search as string, mode: 'insensitive' } },
+                { guestName: { contains: search as string, mode: 'insensitive' } },
+                { user: { name: { contains: search as string, mode: 'insensitive' } } },
+                { guestPhone: { contains: search as string, mode: 'insensitive' } },
+                { user: { phone: { contains: search as string, mode: 'insensitive' } } },
+            ];
+        }
 
         if (userRole === "ADMIN") {
             whereCondition.locationId = admin.locationId;
@@ -428,10 +440,19 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
         };
 
         if (search) {
+            const searchStr = (search as string).trim();
             whereCondition.OR = [
-                { bookingNumber: { contains: search as string, mode: 'insensitive' } },
-                { vehicle: { plate: { contains: search as string, mode: 'insensitive' } } },
-                { guestPlate: { contains: search as string, mode: 'insensitive' } }
+                // Booking Number
+                { bookingNumber: { contains: searchStr, mode: 'insensitive' } },
+                // Plat Mobil (Registered Vehicle & Guest Vehicle)
+                { vehicle: { plate: { contains: searchStr, mode: 'insensitive' } } },
+                { guestPlate: { contains: searchStr, mode: 'insensitive' } },
+                // Nama Customer (User & Guest)
+                { user: { name: { contains: searchStr, mode: 'insensitive' } } },
+                { guestName: { contains: searchStr, mode: 'insensitive' } },
+                // Nomor HP Customer (User & Guest)
+                { user: { phone: { contains: searchStr, mode: 'insensitive' } } },
+                { guestPhone: { contains: searchStr, mode: 'insensitive' } },
             ];
         }
 
