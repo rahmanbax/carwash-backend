@@ -96,12 +96,11 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                     service: {
                         select: {
                             name: true,
-                            price: true,
                         }
                     }
                 },
                 orderBy: {
-                    bookingDate: "desc",
+                    bookingDate: "asc",
                 },
                 skip,
                 take: limitNum,
@@ -127,7 +126,7 @@ export const getTransactionList = async (req: AuthRequest, res: Response) => {
                 customerName: booking.guestName || (booking.user ? booking.user.name : "-"),
                 customerPhone: booking.guestPhone || (booking.user ? booking.user.phone : "-"),
                 serviceName: booking.service.name,
-                servicePrice: booking.service.price,
+                servicePrice: booking.totalPrice,
                 bookingTime: toWIB(bookingTime),
                 estimateFinish: toWIB(estimateFinish),
                 status: booking.status,
@@ -174,7 +173,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const { name, phone, plate, vehicleType, serviceId, bookingTime, paymentMethod } = req.body;
+        const { name, phone, plate, vehicleType, serviceId, bookingTime, paymentMethod, price } = req.body;
 
         // 1. Validasi Input
         if (!name || !phone || !plate || !vehicleType || !serviceId) {
@@ -200,8 +199,8 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
         const locationId = admin.locationId;
 
         // 3. Ambil data layanan
-        const service = await prisma.service.findUnique({
-            where: { id: serviceId }
+        const service = await prisma.service.findFirst({
+            where: { id: serviceId, isDeleted: false }
         });
 
         if (!service) {
@@ -226,6 +225,9 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                 message: `Layanan ini hanya untuk kendaraan tipe ${service.vehicleType}.`,
             });
         }
+
+        // Gunakan harga yang dikirim atau harga layanan saat ini
+        const finalPrice = price !== undefined && !isNaN(Number(price)) ? Number(price) : service.price;
 
         // 4. Cek apakah nomor telepon sudah terdaftar sebagai user
         const existingUser = await prisma.user.findUnique({
@@ -311,7 +313,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
                     bookingNumber: `TEMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                     queueNumber,
                     bookingDate: transactionDate,
-                    totalPrice: service.price,
+                    totalPrice: finalPrice,
                     status: "BOOKED",
                     paymentMethod: paymentMethod || null,
                     locationId,
@@ -466,7 +468,7 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
                 include: {
                     user: { select: { name: true, phone: true } },
                     vehicle: { select: { plate: true, type: true, cc: true } },
-                    service: { select: { name: true, price: true } }
+                    service: { select: { name: true } }
                 },
                 orderBy: {
                     bookingDate: "desc",
@@ -492,7 +494,7 @@ export const getTransactionHistory = async (req: AuthRequest, res: Response) => 
             customerName: booking.guestName || (booking.user ? booking.user.name : "-"),
             customerPhone: booking.guestPhone || (booking.user ? booking.user.phone : "-"),
             serviceName: booking.service.name,
-            servicePrice: booking.service.price,
+            servicePrice: booking.totalPrice,
             status: booking.status,
             paymentMethod: booking.paymentMethod || null,
         }));
@@ -585,7 +587,7 @@ export const getUserByPhone = async (req: AuthRequest, res: Response) => {
 export const updateTransactionStatus = async (req: AuthRequest, res: Response) => {
     try {
         const bookingId = parseInt(req.params.id, 10);
-        const { status } = req.body;
+        const { status, paymentMethod } = req.body;
         const userId = req.user?.userId;
         const userRole = req.user?.role;
 
@@ -596,10 +598,10 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
             });
         }
 
-        // 1. Ambil data booking untuk cek lokasinya
+        // 1. Ambil data booking untuk cek lokasinya dan metode pembayaran saat ini
         const bookingToUpdate = await prisma.booking.findUnique({
             where: { id: bookingId },
-            select: { id: true, status: true, locationId: true, bookingNumber: true, userId: true },
+            select: { id: true, status: true, locationId: true, bookingNumber: true, userId: true, paymentMethod: true },
         });
 
         if (!bookingToUpdate) {
@@ -614,6 +616,15 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
             return res.status(400).json({
                 status: "error",
                 message: "Transaksi sudah selesai dan tidak dapat diubah statusnya lagi.",
+            });
+        }
+
+        // Jika status diubah menjadi SELESAI, pastikan metode pembayaran sudah dipilih
+        const effectivePaymentMethod = paymentMethod || bookingToUpdate.paymentMethod;
+        if (status === "SELESAI" && !effectivePaymentMethod) {
+            return res.status(400).json({
+                status: "error",
+                message: "Silakan pilih metode pembayaran terlebih dahulu sebelum menyelesaikan transaksi.",
             });
         }
 
@@ -640,6 +651,10 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
         // 3. Update Status dan Simpan History
         const updatedBooking = await prisma.$transaction(async (tx) => {
             const updateData: any = { status };
+
+            if (paymentMethod) {
+                updateData.paymentMethod = paymentMethod.trim().toUpperCase();
+            }
 
             // Jika status diubah menjadi SELESAI, otomatis set paymentStatus menjadi PAID
             if (status === "SELESAI") {
@@ -707,6 +722,99 @@ export const updateTransactionStatus = async (req: AuthRequest, res: Response) =
 
     } catch (error) {
         console.error("Error saat update status transaksi:", error);
+        res.status(500).json({
+            status: "error",
+            message: "Terjadi kesalahan pada server.",
+        });
+    }
+};
+
+/**
+ * Memperbarui metode pembayaran transaksi (Booking)
+ */
+export const updatePaymentMethod = async (req: AuthRequest, res: Response) => {
+    try {
+        const bookingId = parseInt(req.params.id, 10);
+        const { paymentMethod } = req.body;
+        const userId = req.user?.userId;
+        const userRole = req.user?.role;
+
+        if (!userId || !userRole) {
+            return res.status(401).json({
+                status: "error",
+                message: "User tidak terautentikasi.",
+            });
+        }
+
+        if (isNaN(bookingId)) {
+            return res.status(400).json({
+                status: "error",
+                message: "ID transaksi tidak valid.",
+            });
+        }
+
+        if (!paymentMethod) {
+            return res.status(400).json({
+                status: "error",
+                message: "Metode pembayaran wajib diisi.",
+            });
+        }
+
+        // 1. Ambil data booking untuk cek lokasinya
+        const bookingToUpdate = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            select: { id: true, locationId: true, bookingNumber: true },
+        });
+
+        if (!bookingToUpdate) {
+            return res.status(404).json({
+                status: "error",
+                message: "Transaksi tidak ditemukan.",
+            });
+        }
+
+        // 2. Cek Otorisasi: Hanya ADMIN dan SUPERADMIN yang dapat mengupdate metode pembayaran
+        if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
+            return res.status(403).json({
+                status: "error",
+                message: "Akses ditolak. Anda tidak memiliki izin untuk mengubah metode pembayaran.",
+            });
+        }
+
+        if (userRole === "ADMIN") {
+            const admin = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { locationId: true },
+            });
+
+            if (!admin || admin.locationId !== bookingToUpdate.locationId) {
+                return res.status(403).json({
+                    status: "error",
+                    message: "Akses ditolak. Anda hanya dapat mengubah metode pembayaran di lokasi Anda.",
+                });
+            }
+        }
+
+        // 3. Update paymentMethod
+        const updatedBooking = await prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+                paymentMethod: paymentMethod.trim().toUpperCase(),
+            },
+        });
+
+        res.status(200).json({
+            status: "success",
+            message: `Metode pembayaran untuk transaksi ${updatedBooking.bookingNumber} berhasil diperbarui.`,
+            data: {
+                id: updatedBooking.id,
+                bookingNumber: updatedBooking.bookingNumber,
+                paymentMethod: updatedBooking.paymentMethod,
+            },
+        });
+
+    } catch (error) {
+        console.error("Error saat update metode pembayaran:", error);
         res.status(500).json({
             status: "error",
             message: "Terjadi kesalahan pada server.",

@@ -168,6 +168,10 @@ const router = Router();
  *                 format: date-time
  *                 description: Waktu booking yang diinginkan dalam format ISO 8601 (UTC).
  *                 example: "2025-11-29T10:30:00.000Z"
+ *               price:
+ *                 type: number
+ *                 description: (Opsional) Harga booking. Jika tidak diisi, menggunakan harga layanan saat ini.
+ *                 example: 50000
  *     responses:
  *       '201':
  *         description: Booking berhasil dibuat, mengembalikan detail lengkap dan QR code.

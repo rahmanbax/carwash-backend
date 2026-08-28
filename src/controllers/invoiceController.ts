@@ -115,96 +115,126 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
         const tableTop = 120;
         const tableLeft = 50;
         const tableWidth = 495; // Total width
-        const colWidths = [85, 105, 115, 105, 85]; // Lebar kolom
-        const rowHeight = 28;
-        const headerHeight = 30;
+        const colWidths = [75, 85, 85, 105, 70, 75]; // Lebar kolom total = 495
+        const rowHeight = 32;
+        const headerHeight = 28;
+        const totalTableHeight = headerHeight + (bookings.length * rowHeight);
 
-        // Atur ketebalan garis seragam
-        doc.lineWidth(0.7);
+        // --- 1. BACKGROUND LAYER ---
+        // Header Background
+        doc.rect(tableLeft, tableTop, tableWidth, headerHeight).fill('#F3F4F6');
 
-        // Table Header Background
-        doc.rect(tableLeft, tableTop, tableWidth, headerHeight).fill('#F5F5F5');
+        // Row Backgrounds (Zebra striping)
+        bookings.forEach((_, index) => {
+            const rowY = tableTop + headerHeight + (index * rowHeight);
+            const bgColor = index % 2 === 1 ? '#F9FAFB' : '#FFFFFF';
+            doc.rect(tableLeft, rowY, tableWidth, rowHeight).fill(bgColor);
+        });
 
-        // Table Header Text
-        doc.font("Helvetica-Bold").fontSize(9).fillColor("#333333");
-        let xPos = tableLeft + 10;
-        const headers = ["TANGGAL", "CUSTOMER", "KENDARAAN", "LAYANAN", "HARGA"];
-        headers.forEach((header, i) => {
-            const align = i === 4 ? 'right' : 'left';
-            const textX = i === 4 ? xPos - 15 : xPos;
-            doc.text(header, textX, tableTop + 10, { width: colWidths[i] - 15, align });
+        // --- 2. TEXT LAYER ---
+        // Header Text
+        doc.font("Helvetica-Bold").fontSize(8.5).fillColor("#374151");
+        let xPos = tableLeft;
+        const headers = [
+            { label: "TANGGAL", align: "left" },
+            { label: "CUSTOMER", align: "left" },
+            { label: "KENDARAAN", align: "left" },
+            { label: "LAYANAN", align: "left" },
+            { label: "PEMBAYARAN", align: "center" },
+            { label: "HARGA", align: "right" }
+        ];
+
+        headers.forEach((h, i) => {
+            const padX = h.align === 'right' ? xPos : (h.align === 'center' ? xPos : xPos + 8);
+            const textWidth = h.align === 'right' ? colWidths[i] - 8 : (h.align === 'center' ? colWidths[i] : colWidths[i] - 8);
+            doc.text(h.label, padX, tableTop + 9, { width: textWidth, align: h.align as any });
             xPos += colWidths[i];
         });
 
-        // Table Rows
-        doc.font("Helvetica").fontSize(9).fillColor("#333333");
-        let yPos = tableTop + headerHeight;
+        // Row Text
+        const formatVehicleType = (type?: string | null) => {
+            if (!type) return "-";
+            return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        };
 
         bookings.forEach((b, index) => {
-            // Alternating row background
-            if (index % 2 === 1) {
-                doc.rect(tableLeft, yPos, tableWidth, rowHeight).fill('#FAFAFA');
-            }
+            const rowY = tableTop + headerHeight + (index * rowHeight);
+            const bookingWIB = new Date(b.bookingDate.getTime() + 7 * 60 * 60 * 1000);
+            const dateStr = format(bookingWIB, "dd/MM/yyyy");
+            const timeStr = format(bookingWIB, "HH.mm");
+            const customerName = b.user ? b.user.name : (b.guestName || "Guest");
+            const plateStr = b.vehicle ? b.vehicle.plate : (b.guestPlate || "-");
+            const vehicleTypeStr = formatVehicleType(b.vehicle ? b.vehicle.type : b.guestVehicleType);
+            const serviceName = b.service.name;
+            const paymentMethodStr = b.paymentMethod ? b.paymentMethod.toUpperCase() : "-";
+            const priceStr = `Rp ${b.totalPrice.toLocaleString("id-ID")}`;
 
-            // Row border bottom (Hanya gambar jika bukan baris terakhir untuk menghindari tumpukan)
-            if (index < bookings.length - 1) {
-                doc.moveTo(tableLeft, yPos + rowHeight)
-                    .lineTo(tableLeft + tableWidth, yPos + rowHeight)
-                    .stroke('#CCCCCC');
-            }
+            let curX = tableLeft;
 
-            // Row data
-            doc.fillColor("#333333");
-            xPos = tableLeft + 10;
-            const toWIB = (date: Date) => new Date(date.getTime() + 7 * 60 * 60 * 1000);
-            const rowData = [
-                format(toWIB(new Date(b.bookingDate)), "dd/MM/yyyy"),
-                b.user ? b.user.name : (b.guestName || "Guest"),
-                `${b.vehicle ? b.vehicle.plate : (b.guestPlate || "-")} (${b.vehicle ? b.vehicle.type : (b.guestVehicleType || "-")})`,
-                b.service.name,
-                `Rp. ${b.totalPrice.toLocaleString("id-ID")}`
-            ];
+            // 1. TANGGAL (Date + Time - 2 baris terpusat simetris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            doc.text(dateStr, curX + 8, rowY + 6.5, { width: colWidths[0] - 8 });
+            doc.font("Helvetica").fontSize(7).fillColor("#6B7280");
+            doc.text(timeStr, curX + 8, rowY + 17, { width: colWidths[0] - 8 });
+            curX += colWidths[0];
 
-            rowData.forEach((data, i) => {
-                const align = i === 4 ? 'right' : 'left';
-                const textX = i === 4 ? xPos - 15 : xPos;
-                doc.text(data, textX, yPos + 9, { width: colWidths[i] - 15, align });
-                xPos += colWidths[i];
-            });
+            // 2. CUSTOMER (1 baris terpusat simetris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            doc.text(customerName, curX + 8, rowY + 11.2, { width: colWidths[1] - 8, lineBreak: false, ellipsis: true });
+            curX += colWidths[1];
 
-            yPos += rowHeight;
+            // 3. KENDARAAN (Plate + Type - 2 baris terpusat simetris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            doc.text(plateStr, curX + 8, rowY + 6.5, { width: colWidths[2] - 8 });
+            doc.font("Helvetica").fontSize(7).fillColor("#6B7280");
+            doc.text(vehicleTypeStr, curX + 8, rowY + 17, { width: colWidths[2] - 8 });
+            curX += colWidths[2];
+
+            // 4. LAYANAN (Dihitung dinamis agar terpusat simetris baik 1 baris maupun 2 baris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            const serviceTextHeight = doc.heightOfString(serviceName, { width: colWidths[3] - 8 });
+            const serviceY = rowY + ((rowHeight - serviceTextHeight) / 2);
+            doc.text(serviceName, curX + 8, serviceY, { width: colWidths[3] - 8, height: rowHeight - 8 });
+            curX += colWidths[3];
+
+            // 5. PEMBAYARAN (1 baris terpusat simetris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            doc.text(paymentMethodStr, curX, rowY + 11.2, { width: colWidths[4], align: 'center' });
+            curX += colWidths[4];
+
+            // 6. HARGA (1 baris terpusat simetris)
+            doc.font("Helvetica").fontSize(8).fillColor("#111827");
+            doc.text(priceStr, curX, rowY + 11.2, { width: colWidths[5] - 8, align: 'right' });
         });
 
-        // Table outer border
-        doc.rect(tableLeft, tableTop, tableWidth, headerHeight + (bookings.length * rowHeight)).stroke('#CCCCCC');
+        // --- 3. BORDER LAYER (Ditarik paling akhir di atas layer background) ---
+        doc.lineWidth(0.5);
+
+        // Garis pemisah bawah Header
+        doc.moveTo(tableLeft, tableTop + headerHeight)
+            .lineTo(tableLeft + tableWidth, tableTop + headerHeight)
+            .stroke('#D1D5DB');
+
+        // Garis pemisah antar baris tabel
+        for (let i = 1; i < bookings.length; i++) {
+            const lineY = tableTop + headerHeight + (i * rowHeight);
+            doc.moveTo(tableLeft, lineY)
+                .lineTo(tableLeft + tableWidth, lineY)
+                .stroke('#D1D5DB');
+        }
+
+        // Outer Border (Keliling Tabel)
+        doc.rect(tableLeft, tableTop, tableWidth, totalTableHeight).stroke('#D1D5DB');
 
         // ============== FOOTER SECTION ==============
-        const footerY = yPos + 30;
-        const labelX = 380;
-        const valueX = 480;
-
-        // Upper Divider line
-        // doc.moveTo(labelX, footerY - 10)
-        //     .lineTo(valueX + 65, footerY - 10)
-        //     .lineWidth(0.5)
-        //     .stroke('#CCCCCC');
-
-        // Subtotal
-        // doc.font("Helvetica").fontSize(10).fillColor("#777777");
-        // doc.text("Subtotal:", labelX, footerY, { width: 60 });
-        // doc.font("Helvetica").fillColor("#777777");
-        // doc.text(`Rp. ${totalAmount.toLocaleString("id-ID")}`, valueX, footerY, { align: 'right', width: 65 });
-
-        // Divider line
-        // doc.moveTo(labelX, footerY + 15)
-        //     .lineTo(valueX + 65, footerY + 15)
-        //     .lineWidth(0.5)
-        //     .stroke('#CCCCCC');
+        const footerY = tableTop + totalTableHeight + 20;
+        const labelX = 350;
+        const valueX = 425;
 
         // Total
         doc.font("Helvetica-Bold").fontSize(11).fillColor("black");
-        doc.text("Total:", labelX, footerY + 25, { width: 60 });
-        doc.text(`Rp. ${totalAmount.toLocaleString("id-ID")}`, valueX, footerY + 25, { align: 'right', width: 65 });
+        doc.text("Total:", labelX, footerY, { width: 70 });
+        doc.text(`Rp ${totalAmount.toLocaleString("id-ID")}`, valueX, footerY, { align: 'right', width: 120 });
 
         doc.end();
 

@@ -137,7 +137,7 @@ export const createReview = async (req: AuthRequest, res: Response) => {
  */
 export const getAllReviews = async (req: Request, res: Response) => {
   try {
-    const { serviceId, locationId, rating, page = "1", limit = "10" } = req.query;
+    const { serviceId, locationId, rating, search, page = "1", limit = "10" } = req.query;
 
     const whereClause: Prisma.ReviewWhereInput = {};
 
@@ -162,6 +162,15 @@ export const getAllReviews = async (req: Request, res: Response) => {
       }
     }
 
+    if (search) {
+      whereClause.user = {
+        name: {
+          contains: search as string,
+          mode: "insensitive",
+        },
+      };
+    }
+
     const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
     const limitNum = Math.max(1, Math.min(50, parseInt(limit as string, 10) || 10));
     const skip = (pageNum - 1) * limitNum;
@@ -176,6 +185,7 @@ export const getAllReviews = async (req: Request, res: Response) => {
               id: true,
               name: true,
               username: true,
+              // phone: true,
               photoUrl: true,
             },
           },

@@ -24,7 +24,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const { vehicleId, serviceId, bookingDate, locationId } = req.body;
+    const { vehicleId, serviceId, bookingDate, locationId, price } = req.body;
 
     if (!vehicleId || !serviceId || !bookingDate || !locationId) {
       return res.status(400).json({
@@ -82,13 +82,13 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, isDeleted: false },
     });
     if (!service) {
       return res
         .status(400)
-        .json({ status: "error", message: "ID layanan tidak valid." });
+        .json({ status: "error", message: "ID layanan tidak valid atau layanan tidak ditemukan." });
     }
 
     const location = await prisma.location.findFirst({
@@ -149,7 +149,8 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const totalPrice = service.price;
+    // Gunakan harga yang dikirim atau harga layanan saat ini
+    const totalPrice = price !== undefined && !isNaN(Number(price)) ? Number(price) : service.price;
 
     const createdBooking = await prisma.$transaction(async (tx) => {
       // Cek ketersediaan slot (Spesifik per lokasi)

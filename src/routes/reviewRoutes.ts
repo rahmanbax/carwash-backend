@@ -49,6 +49,13 @@ const router = Router();
  *         description: Filter ulasan berdasarkan jumlah bintang rating (1-5).
  *         example: 5
  *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Cari ulasan berdasarkan nama customer.
+ *         example: Budi
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer

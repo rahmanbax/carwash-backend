@@ -71,7 +71,9 @@ export const getAllServices = async (req: Request, res: Response) => {
     }
 
     // Susun kondisi WHERE
-    const andConditions: Prisma.ServiceWhereInput[] = [];
+    const andConditions: Prisma.ServiceWhereInput[] = [
+      { isDeleted: false },
+    ];
 
     // 1. Filter Vehicle Type
     if (filterType) {
@@ -164,8 +166,8 @@ export const getServiceById = async (req: Request, res: Response) => {
         .json({ status: "error", message: "ID Layanan tidak valid." });
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, isDeleted: false },
       select: {
         id: true,
         name: true,
@@ -394,8 +396,8 @@ export const updateService = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const existingService = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const existingService = await prisma.service.findFirst({
+      where: { id: serviceId, isDeleted: false },
     });
 
     if (!existingService) {
@@ -584,8 +586,8 @@ export const deleteService = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    const service = await prisma.service.findFirst({
+      where: { id: serviceId, isDeleted: false },
     });
 
     if (!service) {
@@ -619,15 +621,17 @@ export const deleteService = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    if (activeBookingsCount > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "Layanan tidak dapat dihapus karena sedang digunakan dalam pesanan aktif.",
-      });
-    }
+    // if (activeBookingsCount > 0) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "Layanan tidak dapat dihapus karena sedang digunakan dalam pesanan aktif.",
+    //   });
+    // }
 
-    await prisma.service.delete({
+    // Lakukan soft delete
+    await prisma.service.update({
       where: { id: serviceId },
+      data: { isDeleted: true },
     });
 
     res.status(200).json({

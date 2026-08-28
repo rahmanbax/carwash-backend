@@ -1,5 +1,12 @@
 import { Router } from "express";
-import { getTransactionList, createTransaction, getTransactionHistory, updateTransactionStatus, getUserByPhone } from "../controllers/transactionController";
+import {
+    getTransactionList,
+    createTransaction,
+    getTransactionHistory,
+    updateTransactionStatus,
+    updatePaymentMethod,
+    getUserByPhone
+} from "../controllers/transactionController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -163,6 +170,10 @@ const router = Router();
  *               serviceId:
  *                 type: integer
  *                 example: 1
+ *               price:
+ *                 type: number
+ *                 description: (Opsional) Harga transaksi. Jika tidak diisi, menggunakan harga layanan saat ini.
+ *                 example: 50000
  *               paymentMethod:
  *                 type: string
  *                 description: (Opsional) Metode pembayaran seperti tunai / qris
@@ -554,5 +565,67 @@ router.get("/user-by-phone", authMiddleware, getUserByPhone);
  *         description: Transaksi tidak ditemukan.
  */
 router.patch("/:id/status", authMiddleware, updateTransactionStatus);
+
+/**
+ * @swagger
+ * /api/transactions/{id}/payment-method:
+ *   patch:
+ *     summary: Memperbarui metode pembayaran transaksi (Hanya ADMIN / SUPERADMIN)
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID unik dari transaksi/booking.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [paymentMethod]
+ *             properties:
+ *               paymentMethod:
+ *                 type: string
+ *                 description: Metode pembayaran seperti TUNAI, QRIS, TRANSFER, dll.
+ *                 example: "QRIS"
+ *     responses:
+ *       '200':
+ *         description: Metode pembayaran berhasil diperbarui.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: "Metode pembayaran untuk transaksi TNX001 berhasil diperbarui."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     bookingNumber:
+ *                       type: string
+ *                       example: "TNX001"
+ *                     paymentMethod:
+ *                       type: string
+ *                       example: "QRIS"
+ *       '400':
+ *         description: Parameter atau data tidak valid.
+ *       '403':
+ *         description: Akses ditolak.
+ *       '404':
+ *         description: Transaksi tidak ditemukan.
+ */
+router.patch("/:id/payment-method", authMiddleware, updatePaymentMethod);
 
 export default router;
